@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import ExpertOrder from './ExpertOrder';
 import ExpertProfile from './ExpertProfile';
+import ExpertLoginActivity from './ExpertLoginActivity'
 
 const ExpertPortal = () => {
   const [expertData, setExpertData] = useState(null);
@@ -105,7 +106,7 @@ const ExpertPortal = () => {
           {activeTab === "dashboard" && <p>Welcome to your expert dashboard.</p>}
           {activeTab === "orders" && <ExpertOrder />}
           {activeTab === "profile" && <ExpertProfile />}
-          {activeTab === "Login Activity" && <p>Login Activity will appear here.</p>}
+          {activeTab === "Login Activity" && <ExpertLoginActivity />}
         </section>
       </main>
     </div>
