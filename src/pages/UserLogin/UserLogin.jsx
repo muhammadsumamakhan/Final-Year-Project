@@ -3,8 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { auth, db } from "../../config/firebase/config";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { getDoc, doc } from "firebase/firestore";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const UserLogin = () => {
@@ -21,7 +28,6 @@ const UserLogin = () => {
     const userEmail = emailRef.current.value.trim();
     const userPassword = passwordRef.current.value;
 
-    // Basic validation
     if (!userEmail || !userPassword) {
       toast.error("Please fill in all fields.");
       return;
@@ -40,22 +46,42 @@ const UserLogin = () => {
       }
 
       // Regular User Authentication
-      const userCredential = await signInWithEmailAndPassword(auth, userEmail, userPassword);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        userEmail,
+        userPassword
+      );
       const user = userCredential.user;
 
-      // Fetch user role from Firestore
-      const userDocRef = doc(db, "FYPusers", user.uid);
-      const userDoc = await getDoc(userDocRef);
+      // Verify user role from Firestore (FYPusers collection)
+      const q = query(
+        collection(db, "FYPusers"),
+        where("uid", "==", user.uid),
+        where("role", "==", "user")
+      );
 
-      if (userDoc.exists()) {
-        console.log("User Role:", userDoc.data().role);
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // User with role "user" found
+        console.log("User verified with role 'user'.");
+
+        // Add login record to "logs" collection
+        await addDoc(collection(db, "logs"), {
+          uid: user.uid,
+          role: "user",
+          loginStatus: "Logged In",
+          date: serverTimestamp(),
+        });
+
+        toast.success("Login successful!");
+        setTimeout(() => {
+          navigate("/");
+        }, 1500);
+      } else {
+        toast.error("Unauthorized user or role mismatch.");
+        await signOut(auth);
       }
-
-      toast.success("Login successful!");
-      setTimeout(() => {
-        navigate("/");
-      }, 1500);
-
     } catch (error) {
       console.error("Login Error:", error.code, error.message);
 
@@ -84,7 +110,7 @@ const UserLogin = () => {
     <div className="flex items-center justify-center h-screen bg-gray-100">
       {/* Login Container */}
       <div className="bg-white p-8 rounded-lg shadow-lg w-[30rem]">
-        {/* Orange Text */}
+        {/* Welcome Text */}
         <h2 className="text-orange-500 text-3xl mr-4 text-center">
           Welcome, User!
         </h2>

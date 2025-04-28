@@ -1,119 +1,91 @@
-import React, { useEffect, useState } from 'react';
-import { auth, db } from '../../config/firebase/config'; // Ensure this path is correct for your project
-import { collection, query, where, getDocs, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import React, { useEffect, useState } from "react";
+import { db, auth } from "../../config/firebase/config";
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 const ExpertLoginActivity = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const logAndFetchActivity = async () => {
-      try {
-        const user = auth.currentUser;
-        console.log("User:", user); // Debug: Check if user is authenticated
-
-        if (user) {
-          // Query to check if the user is an expert
-          const expertQuery = query(
-            collection(db, "FYPusers"),
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const q = query(
+            collection(db, "logs"),
             where("uid", "==", user.uid),
-            where("role", "==", "expert")
+            orderBy("date", "desc")
           );
 
-          const expertSnapshot = await getDocs(expertQuery);
-          console.log("Expert Snapshot:", expertSnapshot); // Debug: Check if expert data is found
+          const querySnapshot = await getDocs(q);
+          const fetchedLogs = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
-          if (!expertSnapshot.empty) {
-            console.log("User is an expert, adding log...");
-
-            // Add a new login log to Firestore
-            await addDoc(collection(db, "logs"), {
-              uid: user.uid,
-              role: "expert",
-              loginStatus: "Logged In",
-              date: serverTimestamp()
-            })
-              .then(() => {
-                console.log("Login log added for expert");
-              })
-              .catch((error) => {
-                console.error("Error adding login log: ", error);
-                setError("An error occurred while logging in.");
-              });
-
-            // Fetch logs for this expert
-            const logsQuery = query(
-              collection(db, "logs"),
-              where("uid", "==", user.uid),
-              orderBy("date", "desc") // Ensure "date" is indexed
-            );
-
-            const logsSnapshot = await getDocs(logsQuery);
-            console.log("Logs Snapshot:", logsSnapshot); // Debug: Check if logs are fetched
-
-            if (!logsSnapshot.empty) {
-              const logsData = logsSnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-              }));
-              setLogs(logsData); // Set the logs state
-            } else {
-              setError("No logs found for this expert.");
-            }
-          } else {
-            setError('User is not an expert');
-            console.log("User is not an expert.");
-          }
-        } else {
-          setError('No user logged in');
-          console.log("No user logged in.");
+          setLogs(fetchedLogs);
+        } catch (error) {
+          console.error("Error fetching logs:", error);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Error fetching or adding log:", err);
-        setError('An error occurred while fetching logs');
-      } finally {
-        setLoading(false); // Stop loading after operation is completed
+      } else {
+        setLoading(false);
       }
-    };
+    });
 
-    logAndFetchActivity();
+    return () => unsubscribe();
   }, []);
 
-  return (
-    <div style={{ padding: "20px" }}>
-      {loading && <p>Loading your activity...</p>}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl font-semibold">Loading...</div>
+      </div>
+    );
+  }
 
-      {logs.length === 0 ? (
-        <p>No logs found for this expert.</p>
-      ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ backgroundColor: "#3498db", color: "#fff" }}>
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>LOGIN STATUS</th>
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>DATE</th>
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>USER TYPE</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id} style={{ backgroundColor: "#f9f9f9", textAlign: "center" }}>
-                <td style={{ padding: "8px", border: "1px solid #ddd" }}>{log.loginStatus}</td>
-                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
-                  {log.date ? new Date(log.date.seconds * 1000).toLocaleString('en-US', {
-                    day: '2-digit', month: 'short', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-                  }) : "N/A"}
-                </td>
-                <td style={{ padding: "8px", border: "1px solid #ddd" }}>
-                  {log.role === "expert" ? "Expert" : "Unknown Role"}
-                </td>
+  if (!logs.length) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-gray-600">
+          No login activity found. Please log in to view your activity.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <header className="w-full h-[70px] flex justify-between items-center bg-orange-500 border-b px-4 sm:px-6 md:px-16 lg:px-[166px]">
+        <h1 className="text-white text-2xl md:text-3xl font-bold">Login Activity</h1>
+      </header>
+
+      {/* Table */}
+      <div className="overflow-x-auto mt-8">
+        <div className="w-full max-w-screen-lg mx-auto px-2 sm:px-6 lg:px-[166px]">
+          <table className="min-w-full bg-white shadow-md mb-9 rounded-lg overflow-hidden">
+            <thead className="bg-[#0D003B] text-white">
+              <tr>
+                <th className="py-3 px-6 text-left">Status</th>
+                <th className="py-3 px-6 text-left">Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id} className="border-b">
+                  <td className="py-3 px-6 capitalize">{log.loginStatus}</td>
+                  <td className="py-3 px-6">
+                    {log.date?.toDate().toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
 };

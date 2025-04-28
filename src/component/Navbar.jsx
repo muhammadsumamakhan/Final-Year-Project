@@ -14,46 +14,46 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   // Listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        console.log("Current User UID:", currentUser.uid);
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    if (currentUser) {
-      setUser(currentUser);
-      console.log("Current User UID:", currentUser.uid);
+        try {
+          const q = query(collection(db, "FYPusers"), where("uid", "==", currentUser.uid));
+          const querySnapshot = await getDocs(q);
 
-      try {
-        const q = query(collection(db, "FYPusers"), where("uid", "==", currentUser.uid));
-        const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const docSnap = querySnapshot.docs[0]; // Get the first matching document
+            const data = docSnap.data();
+            console.log("Fetched user data:", data);
 
-        if (!querySnapshot.empty) {
-          const docSnap = querySnapshot.docs[0]; // Get the first matching document
-          const data = docSnap.data();
-          console.log("Fetched user data:", data);
-
-          if (data.role === "expert" || data.role === "user") {
-            setUserRole(data.role);
+            if (data.role === "expert" || data.role === "user") {
+              setUserRole(data.role);
+              console.log(data.role);
+              
+            } else {
+              console.warn("Role not defined correctly in Firestore.");
+              setUserRole(null);
+            }
           } else {
-            console.warn("Role not defined correctly in Firestore.");
+            console.warn("No document found in FYPusers with UID:", currentUser.uid);
             setUserRole(null);
           }
-        } else {
-          console.warn("No document found in FYPusers with UID:", currentUser.uid);
-          setUserRole(null);
+
+        } catch (error) {
+          console.error("Error fetching role from Firestore:", error);
         }
 
-      } catch (error) {
-        console.error("Error fetching role from Firestore:", error);
+      } else {
+        setUser(null);
+        setUserRole(null);
       }
+    });
 
-    } else {
-      setUser(null);
-      setUserRole(null);
-    }
-  });
-
-  return () => unsubscribe(); // Cleanup listener
-}, []);
-
+    return () => unsubscribe(); // Cleanup listener
+  }, []);
 
   // Handle user logout
   const handleLogout = async () => {
@@ -117,9 +117,9 @@ useEffect(() => {
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      Dashboard
+                      Expert Portal
                     </Link>
-                  ) : (
+                  ) : userRole === "user" ? (
                     <>
                       <Link
                         to="/userportal"
@@ -140,9 +140,11 @@ useEffect(() => {
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        My profile
+                        My Profile
                       </Link>
                     </>
+                  ) : (
+                    <div className="block px-4 py-2 text-gray-700">Unauthorized</div>
                   )}
                   <button
                     onClick={handleLogout}
@@ -216,7 +218,7 @@ useEffect(() => {
                       >
                         Expert Portal
                       </Link>
-                    ) : (
+                    ) : userRole === "user" ? (
                       <Link
                         to="/userportal"
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
@@ -227,8 +229,8 @@ useEffect(() => {
                       >
                         User Portal
                       </Link>
-                      
-                      
+                    ) : (
+                      <div className="block px-4 py-2 text-gray-700">Unauthorized</div>
                     )}
                     <button
                       onClick={handleLogout}

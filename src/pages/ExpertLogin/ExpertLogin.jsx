@@ -5,7 +5,7 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import "react-toastify/dist/ReactToastify.css";
 import { auth, db } from "../../config/firebase/config";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { getDoc, doc } from "firebase/firestore";
+import { getDoc, doc, getDocs, collection, query, where, addDoc, serverTimestamp } from "firebase/firestore";  // Added missing imports
 
 const ExpertLogin = () => {
   const emailRef = useRef(null);
@@ -23,11 +23,9 @@ const ExpertLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Get values from input fields
     const expertEmail = emailRef.current.value.trim();
     const expertPassword = passwordRef.current.value.trim();
 
-    // Validation
     if (!expertEmail || !expertPassword) {
       toast.error("Please fill in all fields.");
       return;
@@ -38,18 +36,34 @@ const ExpertLogin = () => {
       const userCredential = await signInWithEmailAndPassword(auth, expertEmail, expertPassword);
       const user = userCredential.user;
 
-      // Fetch expert role from Firestore
-      const expertDoc = await getDoc(doc(db, "FYPusers", user.uid));
-      if (expertDoc.exists()) {
-        console.log("User Role:", expertDoc.data().role);
+      // Verify expert role from Firestore (FYPusers collection)
+      const q = query(
+        collection(db, "FYPusers"),
+        where("uid", "==", user.uid),
+        where("role", "==", "expert")
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        // User with role "expert" found
+        console.log("User verified with role 'expert'.");
+
+        // Add login record to "logs" collection
+        await addDoc(collection(db, "logs"), {
+          uid: user.uid,
+          role: "expert",
+          loginStatus: "Logged In",
+          date: serverTimestamp(),
+        });
+
+        toast.success("Login successful!");
+        setTimeout(() => {
+          navigate("/"); // You can navigate to any dashboard or logs page here
+        }, 1500);
+      } else {
+        toast.error("User is not verified as an expert.");
       }
-
-      toast.success("Login successful!");
-      setTimeout(() => {
-        // Redirect to Expert Portal after successful login
-        navigate("/");
-      }, 1500);
-
     } catch (error) {
       console.error("Login Error:", error);
       toast.error(error.message);
