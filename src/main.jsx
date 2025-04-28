@@ -26,6 +26,7 @@ import ManageExpertsRequest from './pages/AdminPortal/ManageExpertsRequest';
 import UserProfile from './pages/UserPortal/UserProfile';
 import ExpertProfile from './pages/ExpertPortal/ExpertProfile';
 import ExpertLoginActivity from './pages/ExpertPortal/ExpertLoginActivity'
+import UserLoginActivity from './pages/UserPortal/UserLoginActivity'
 
 const router = createBrowserRouter([
   {
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: 'user-profile', element: <UserProfile /> },
       { path: 'expert-profile', element: <ExpertProfile /> },
       { path: 'expert-login-activity', element: <ExpertLoginActivity /> },
+      { path: 'user-login-activity', element: <UserLoginActivity /> },
   
     ]
   }
