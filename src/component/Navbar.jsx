@@ -126,14 +126,7 @@ const Navbar = () => {
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => setDropdownOpen(false)}
                       >
-                        User Portal
-                      </Link>
-                      <Link
-                        to="/user-login-activity"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        My Login Activity
+                        Dashboard
                       </Link>
                       <Link
                         to="/user-profile"
@@ -142,6 +135,21 @@ const Navbar = () => {
                       >
                         My Profile
                       </Link>
+                      <Link
+                        to="/user-booking-activity"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        My Booking
+                      </Link>
+                      <Link
+                        to="/user-login-activity"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        My Login Activity
+                      </Link>
+                    
                     </>
                   ) : (
                     <div className="block px-4 py-2 text-gray-700">Unauthorized</div>

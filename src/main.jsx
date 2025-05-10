@@ -27,6 +27,7 @@ import UserProfile from './pages/UserPortal/UserProfile';
 import ExpertProfile from './pages/ExpertPortal/ExpertProfile';
 import ExpertLoginActivity from './pages/ExpertPortal/ExpertLoginActivity'
 import UserLoginActivity from './pages/UserPortal/UserLoginActivity'
+import UserBookingActivity from './pages/UserPortal/UserBookingActivity'
 
 const router = createBrowserRouter([
   {
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
       { path: 'expert-profile', element: <ExpertProfile /> },
       { path: 'expert-login-activity', element: <ExpertLoginActivity /> },
       { path: 'user-login-activity', element: <UserLoginActivity /> },
+      { path: 'user-booking-activity', element: <UserBookingActivity /> },
   
     ]
   }
