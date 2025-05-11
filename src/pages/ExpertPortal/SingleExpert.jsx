@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../config/firebase/config';
+import { getAuth } from 'firebase/auth';
 
 const SingleExpert = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // expert ID
   const navigate = useNavigate();
   const [expert, setExpert] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +17,7 @@ const SingleExpert = () => {
     name: '',
     email: '',
     phone: '',
-    address:'',
+    address: '',
     date: '',
     time: '',
   });
@@ -43,16 +46,41 @@ const SingleExpert = () => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleBooking = () => {
-    const { name, email, phone, date, time } = formData;
-    if (!name || !email || !phone || !date || !time) {
-      alert("Please fill out all fields.");
+  const handleBooking = async () => {
+    const { name, email, phone, address, date, time } = formData;
+    if (!name || !email || !phone || !address || !date || !time) {
+      toast.error("Please fill out all fields.");
       return;
     }
 
-    alert(`🎉 Booking confirmed with ${expert.fullName}!\n\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nDate: ${date} at ${time}`);
-    setShowModal(false);
-    setFormData({ name: '', email: '', phone: '', date: '', time: '' });
+    const auth = getAuth();
+    const user = auth.currentUser;
+
+    if (!user) {
+      toast.error("You must be logged in to book.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "bookings"), {
+        name,
+        email,
+        phone,
+        address,
+        date,
+        time,
+        userId: user.uid,
+        expertId: id,
+        createdAt: serverTimestamp()
+      });
+
+      toast.success(`Booking confirmed with ${expert.fullName}`);
+      setShowModal(false);
+      setFormData({ name: '', email: '', phone: '', address: '', date: '', time: '' });
+    } catch (error) {
+      console.error("Booking error:", error);
+      toast.error("Failed to book service. Try again.");
+    }
   };
 
   if (loading) return <p className="text-center mt-10">Loading expert details...</p>;
@@ -60,6 +88,7 @@ const SingleExpert = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <ToastContainer />
       {/* Header */}
       <header className="w-full h-[70px] flex justify-between items-center bg-orange-500 border-b px-4 sm:px-6 md:px-16 lg:px-32">
         <button
@@ -92,14 +121,14 @@ const SingleExpert = () => {
               <p><strong>Experience Level:</strong> {expert.experience}</p>
               <p><strong>Skills:</strong> {expert.skills}</p>
               <p><strong>Charges:</strong> Rs. {expert.charges}</p>
-              <p><strong>GitHub:</strong> 
+              <p><strong>GitHub:</strong>
                 {expert.github ? (
                   <a href={`https://github.com/${expert.github}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-1">
                     {expert.github}
                   </a>
                 ) : " Not Available"}
               </p>
-              <p><strong>LinkedIn:</strong> 
+              <p><strong>LinkedIn:</strong>
                 {expert.linkedIn ? (
                   <a href={`https://linkedin.com/in/${expert.linkedIn}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-1">
                     {expert.linkedIn}
@@ -107,7 +136,7 @@ const SingleExpert = () => {
                 ) : " Not Available"}
               </p>
               <p><strong>National ID:</strong> {expert.nationalId}</p>
-              <p><strong>National ID Image:</strong> 
+              <p><strong>National ID Image:</strong>
                 <a href={expert.nationalIdUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline ml-1">
                   View
                 </a>
@@ -138,52 +167,12 @@ const SingleExpert = () => {
             <h2 className="text-xl font-semibold mb-4 text-center">Book a Service</h2>
             <p className="text-center mb-4 text-gray-700">Fill the form below to book with <strong>{expert.fullName}</strong>.</p>
 
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Your Name"
-              className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Your Email"
-              className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="number"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              placeholder="Your Phone Number"
-              className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="text"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              placeholder="Your address"
-              className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
-            <input
-              type="time"
-              name="time"
-              value={formData.time}
-              onChange={handleChange}
-              className="w-full mb-5 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400"
-            />
+            <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Your Name" className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Your Email" className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <input type="number" name="phone" value={formData.phone} onChange={handleChange} placeholder="Your Phone Number" className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Your Address" className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <input type="date" name="date" value={formData.date} onChange={handleChange} className="w-full mb-3 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
+            <input type="time" name="time" value={formData.time} onChange={handleChange} className="w-full mb-5 px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-400" />
 
             <button
               onClick={handleBooking}
