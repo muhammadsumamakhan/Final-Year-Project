@@ -77,6 +77,10 @@ const SingleExpert = () => {
       toast.success(`Booking confirmed with ${expert.fullName}`);
       setShowModal(false);
       setFormData({ name: '', email: '', phone: '', address: '', date: '', time: '' });
+      setTimeout(() => {
+      navigate('/user-booking-activity');
+    }, 2000);
+    
     } catch (error) {
       console.error("Booking error:", error);
       toast.error("Failed to book service. Try again.");
