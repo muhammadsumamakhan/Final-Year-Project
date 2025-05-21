@@ -53,14 +53,14 @@ const ExpertProfile = () => {
         <h1 className="text-white text-2xl md:text-3xl font-bold">Expert Profile</h1>
       </header>
 
-      <div className="container mx-auto p-4 md:p-6 flex flex-col lg:flex-row gap-6">
+      <div className="min-h-screen flex items-center justify-center p-4 md:p-6 bg-gray-100">
         {/* Profile Info */}
-        <div className="w-full lg:w-2/3 bg-white rounded-lg shadow p-6">
+        <div className="w-full max-w-4xl bg-white rounded-lg shadow p-6">
           <div className="flex flex-col items-center">
             <img
               src={expertDetails?.profileUrl || user?.photoURL || 'https://via.placeholder.com/100'}
               alt="Expert"
-              className="w-24 h-24 rounded-full object-cover border-2 border-orange-500"
+              className="w-48 h-48 object-cover border-4 border-orange-400 shadow"
             />
             <h2 className="text-2xl font-semibold mt-4 text-center">
               {expertDetails?.fullName || user?.displayName || 'Expert Name'}
@@ -115,21 +115,7 @@ const ExpertProfile = () => {
             </button>
           </div>
         </div>
-
-        {/* Booking Activity */}
-        <div className="w-full lg:w-1/3 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 text-orange-500">My Booking Activity</h2>
-          <ul className="space-y-4 text-sm md:text-base">
-            {[1, 2, 3].map((booking, index) => (
-              <li key={index} className="border-b pb-3">
-                <p><span className="font-semibold">Service:</span> Laptop Repair</p>
-                <p><span className="font-semibold">Client:</span> John Doe</p>
-                <p><span className="font-semibold">Date:</span> 2025-04-22</p>
-                <button className="text-red-500 hover:underline mt-1">Cancel Booking</button>
-              </li>
-            ))}
-          </ul>
-        </div>
+        
       </div>
     </>
   );
