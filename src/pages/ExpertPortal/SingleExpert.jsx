@@ -70,7 +70,8 @@ const SingleExpert = () => {
         date,
         time,
         userId: user.uid,
-        expertId: id,
+        expertId: expert.uid, 
+        status: "pending",
         createdAt: serverTimestamp()
       });
 
@@ -118,6 +119,7 @@ const SingleExpert = () => {
             <h2 className="text-2xl font-bold text-gray-900">{expert.fullName}</h2>
             <p className="text-gray-700">{expert.specialization}</p>
             <div className="mt-6 space-y-2 text-gray-600">
+              <p><strong>Uid:</strong> {expert.uid}</p>
               <p><strong>Email:</strong> {expert.email}</p>
               <p><strong>Phone:</strong> {expert.phone}</p>
               <p><strong>City:</strong> {expert.city}</p>
