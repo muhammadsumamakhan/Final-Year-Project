@@ -1,3 +1,112 @@
+import React, { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { db } from '../../config/firebase/config';
+
+const ExpertOrder = () => {
+  const auth = getAuth();
+  const [user, setUser] = useState(null); // store current user
+  const [orders, setOrders] = useState([]);
+
+  // Track auth state
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
+  // Fetch bookings for this expert
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, "bookings"), where("expertId", "==", user.uid));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOrders(list);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Update booking status
+  const updateStatus = async (id, status) => {
+    try {
+      await updateDoc(doc(db, "bookings", id), { status });
+      alert(`Booking ${status}`);
+    } catch (error) {
+      console.error("Status update error:", error);
+      alert("Failed to update status");
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">Booking Requests</h2>
+      {orders.length === 0 && <p>No booking requests found.</p>}
+
+      {orders.map((order) => (
+        <div key={order.id} className="border p-4 rounded mb-4">
+          <p><strong>User:</strong> {order.name} ({order.email})</p>
+          <p><strong>Date & Time:</strong> {order.date} {order.time}</p>
+          <p><strong>Status:</strong> {order.status}</p>
+
+          {order.status === "pending" ? (
+            <>
+              <button
+                onClick={() => updateStatus(order.id, "accepted")}
+                className="mr-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => updateStatus(order.id, "rejected")}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Reject
+              </button>
+            </>
+          ) : (
+            <button className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed" disabled>
+              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+            </button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default ExpertOrder;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // import React, { useState, useEffect } from "react";
 // import { db, auth } from "../../config/firebase/config";
 // import {
@@ -244,130 +353,3 @@
 // };
 
 // export default ExpertOrder;
-
-
-
-
-
-import React, { useEffect, useState } from 'react';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  getDoc,
-} from 'firebase/firestore';
-import { auth, db } from '../../config/firebase/config';
-import { onAuthStateChanged } from 'firebase/auth';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-
-const ExpertOrders = () => {
-  const [bookings, setBookings] = useState([]);
-  const [expertId, setExpertId] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Listen for authentication
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setExpertId(user.uid);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Fetch bookings for this expert in real time
-  useEffect(() => {
-    if (!expertId) return;
-
-    const bookingRef = collection(db, 'bookings');
-    const q = query(bookingRef, where('expertId', '==', expertId));
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const bookingsData = await Promise.all(
-        snapshot.docs.map(async (docSnap) => {
-          const bookingData = docSnap.data();
-          const userRef = doc(db, 'FYPusers', bookingData.userId);
-          const userSnap = await getDoc(userRef);
-          const userData = userSnap.exists() ? userSnap.data() : {};
-
-          return {
-            id: docSnap.id,
-            ...bookingData,
-            user: userData,
-          };
-        })
-      );
-      setBookings(bookingsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [expertId]);
-
-  // Accept booking
-  const acceptBooking = async (bookingId) => {
-    try {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingRef, { status: 'accepted' });
-      toast.success('Booking accepted!');
-    } catch (error) {
-      console.error('Error accepting booking:', error);
-      toast.error('Failed to accept booking.');
-    }
-  };
-
-  return (
-    <div className="p-6 max-w-screen-lg mx-auto">
-      <ToastContainer />
-      <h1 className="text-2xl font-bold mb-6">Expert Bookings</h1>
-
-      {loading ? (
-        <p className="text-gray-500">Loading bookings...</p>
-      ) : bookings.length === 0 ? (
-        <p className="text-gray-600 italic">No bookings found.</p>
-      ) : (
-        bookings.map((booking) => (
-          <div
-            key={booking.id}
-            className="border p-4 mb-4 rounded shadow bg-white"
-          >
-            <h2 className="text-xl font-semibold mb-2">User Info</h2>
-            <p><strong>Name:</strong> {booking.user.fullName}</p>
-            <p><strong>Email:</strong> {booking.user.email}</p>
-            <p><strong>Phone:</strong> {booking.user.phone}</p>
-
-            <div className="mt-4">
-              <h3 className="font-semibold">Booking Details</h3>
-              <p><strong>Date:</strong> {booking.date}</p>
-              <p><strong>Time:</strong> {booking.time}</p>
-              <p><strong>Status:</strong>{' '}
-                <span
-                  className={`font-bold ${
-                    booking.status === 'accepted' ? 'text-green-600' : 'text-yellow-600'
-                  }`}
-                >
-                  {booking.status}
-                </span>
-              </p>
-            </div>
-
-            {booking.status !== 'accepted' && (
-              <button
-                onClick={() => acceptBooking(booking.id)}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Accept Booking
-              </button>
-            )}
-          </div>
-        ))
-      )}
-    </div>
-  );
-};
-
-export default ExpertOrders;

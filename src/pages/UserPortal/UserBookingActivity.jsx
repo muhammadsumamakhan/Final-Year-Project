@@ -1,166 +1,205 @@
-// import React, { useState, useEffect } from 'react';
-// import { db, auth } from '../../config/firebase/config';
-// import {
-//   collection,
-//   query,
-//   where,
-//   getDocs,
-//   doc,
-//   getDoc,
-//   deleteDoc,
-// } from 'firebase/firestore';
-// import { onAuthStateChanged } from 'firebase/auth';
-// import { ToastContainer, toast } from 'react-toastify';
-// import 'react-toastify/dist/ReactToastify.css';
+import React, { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot, doc, getDoc, updateDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { db } from '../../config/firebase/config';
+
+const UserBookingActivity = () => {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  // State for bookings + expert details
+  const [bookingsWithExperts, setBookingsWithExperts] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(collection(db, "bookings"), where("userId", "==", user.uid));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const bookingList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // For each booking, fetch expert data from FYPusers by expertId
+      const bookingsWithExpertData = await Promise.all(
+        bookingList.map(async (booking) => {
+          if (booking.expertId) {
+            const expertDoc = await getDoc(doc(db, "FYPusers", booking.expertId));
+            if (expertDoc.exists()) {
+              return { ...booking, expertData: expertDoc.data() };
+            }
+          }
+          return { ...booking, expertData: null };
+        })
+      );
+
+      setBookingsWithExperts(bookingsWithExpertData);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const cancelBooking = async (id) => {
+    try {
+      await updateDoc(doc(db, "bookings", id), {
+        status: "cancelled"
+      });
+      alert("Booking cancelled.");
+    } catch (error) {
+      console.error("Cancel error:", error);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <header className="w-full h-[70px] flex justify-between items-center bg-gradient-to-r from-orange-500 to-orange-600 px-6 md:px-16 lg:px-36 shadow">
+        <h1 className="text-white text-2xl md:text-3xl font-bold">My booking</h1>
+      </header>
+      <h2 className="text-xl font-bold mb-4">Your Bookings</h2>
+      {bookingsWithExperts.length === 0 && <p>No bookings found.</p>}
+
+      {bookingsWithExperts.map((booking) => (
+        <div key={booking.id} className="border p-4 rounded mb-4">
+          <p><strong>Service Date:</strong> {booking.date} {booking.time}</p>
+          <p><strong>Status:</strong> {booking.status}</p>
+
+          {/* Show expert info if available */}
+          {booking.expertData ? (
+            <div className="mt-2 p-2 bg-gray-100 rounded">
+              <h3 className="font-semibold">Expert Info:</h3>
+              <p><strong>Name:</strong> {booking.expertData.name}</p>
+              <p><strong>Email:</strong> {booking.expertData.email}</p>
+              <p><strong>Phone:</strong> {booking.expertData.phone}</p>
+              <p><strong>Address:</strong> {booking.expertData.address}</p>
+            </div>
+          ) : (
+            <p>Loading expert info...</p>
+          )}
+
+          {booking.status === "pending" && (
+            <>
+              <button className="mr-4 px-4 py-2 bg-yellow-400 rounded cursor-not-allowed" disabled>Pending</button>
+              <button
+                onClick={() => cancelBooking(booking.id)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Cancel Booking
+              </button>
+            </>
+          )}
+
+          {booking.status === "accepted" && (
+            <button className="px-4 py-2 bg-green-600 text-white rounded" disabled>Accepted</button>
+          )}
+
+          {booking.status === "rejected" && (
+            <button className="px-4 py-2 bg-gray-600 text-white rounded" disabled>Rejected</button>
+          )}
+
+          {booking.status === "cancelled" && (
+            <button className="px-4 py-2 bg-red-400 text-white rounded" disabled>Cancelled</button>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
+export default UserBookingActivity;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useEffect, useState } from 'react';
+// import { collection, query, where, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+// import { getAuth } from "firebase/auth";
+// import { db } from '../../config/firebase/config';
 
 // const UserBookingActivity = () => {
-//   const [userId, setUserId] = useState(null);
-//   const [booking, setBooking] = useState(null);
-//   const [bookingId, setBookingId] = useState(null);
-//   const [expert, setExpert] = useState(null);
-//   const [loading, setLoading] = useState(false);
+//   const auth = getAuth();
+//   const user = auth.currentUser;
 
-//   // Get current user ID
+//   const [bookings, setBookings] = useState([]);
+
 //   useEffect(() => {
-//     const unsubscribe = onAuthStateChanged(auth, (user) => {
-//       if (user) {
-//         setUserId(user.uid);
-//         console.log('Current User ID:', user.uid);
-//       }
+//     if (!user) return;
+
+//     // Query bookings for current user
+//     const q = query(collection(db, "bookings"), where("userId", "==", user.uid));
+
+//     // Listen to real-time updates
+//     const unsubscribe = onSnapshot(q, (snapshot) => {
+//       const bookingList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+//       setBookings(bookingList);
 //     });
+
 //     return () => unsubscribe();
-//   }, []);
+//   }, [user]);
 
-//   // Fetch booking and expert
-//   useEffect(() => {
-//     if (!userId) return;
-
-//     const fetchBookingAndExpert = async () => {
-//       try {
-//         const bookingQuery = query(
-//           collection(db, 'bookings'),
-//           where('userId', '==', userId)
-//         );
-//         const bookingSnapshot = await getDocs(bookingQuery);
-
-//         if (bookingSnapshot.empty) {
-//           console.warn('No bookings found for this user.');
-//           return;
-//         }
-
-//         const bookingDoc = bookingSnapshot.docs[0];
-//         setBooking(bookingDoc.data());
-//         setBookingId(bookingDoc.id);
-
-//         const expertRef = doc(db, 'FYPusers', bookingDoc.data().expertId);
-//         const expertSnap = await getDoc(expertRef);
-
-//         if (expertSnap.exists()) {
-//           setExpert(expertSnap.data());
-//         } else {
-//           const fallbackQuery = query(
-//             collection(db, 'FYPusers'),
-//             where('uid', '==', bookingDoc.data().expertId),
-//             where('role', '==', 'expert')
-//           );
-//           const fallbackSnap = await getDocs(fallbackQuery);
-
-//           if (!fallbackSnap.empty) {
-//             setExpert(fallbackSnap.docs[0].data());
-//           } else {
-//             console.warn('Expert not found.');
-//           }
-//         }
-//       } catch (error) {
-//         console.error('Error fetching data:', error);
-//       }
-//     };
-
-//     fetchBookingAndExpert();
-//   }, [userId]);
-
-//   // Cancel booking
-//   const cancelBooking = async () => {
-//     if (!bookingId) return;
-//     setLoading(true);
+//   const cancelBooking = async (id) => {
 //     try {
-//       await deleteDoc(doc(db, 'bookings', bookingId));
-//       setBooking(null);
-//       setExpert(null); // Clear expert as well
-//       toast.success('Booking cancelled successfully!');
+//       // Update status to cancelled or delete booking if preferred
+//       await updateDoc(doc(db, "bookings", id), {
+//         status: "cancelled"
+//       });
+//       alert("Booking cancelled.");
 //     } catch (error) {
-//       console.error('Failed to cancel booking:', error);
-//       toast.error('Error cancelling booking.');
-//     } finally {
-//       setLoading(false);
+//       console.error("Cancel error:", error);
 //     }
 //   };
 
 //   return (
-//     <div>
-//       <ToastContainer />
-//       {/* Header */}
+//     <div className="p-6">
 //       <header className="w-full h-[70px] flex justify-between items-center bg-gradient-to-r from-orange-500 to-orange-600 px-6 md:px-16 lg:px-36 shadow">
-//         <h1 className="text-white text-2xl md:text-3xl font-bold">My Booking Activity</h1>
+//         <h1 className="text-white text-2xl md:text-3xl font-bold">My booking</h1>
 //       </header>
+//       <h2 className="text-xl font-bold mb-4">Your Bookings</h2>
+//       {bookings.length === 0 && <p>No bookings found.</p>}
 
-//       <div className="px-4 py-6 max-w-screen-lg mx-auto sm:px-6 lg:px-[166px]">
-//         {/* Expert Profile and Booking Info */}
-//         {booking && expert && (
-//           <div className="border p-4 rounded shadow flex flex-col md:flex-row items-center md:items-start gap-6">
-//             {expert.profileUrl && (
-//               <img
-//                 src={expert.profileUrl}
-//                 alt="Expert Profile"
-//                 className="w-32 h-32 md:w-48 md:h-48 object-cover border-4 shadow"
-//               />
-//             )}
+//       {bookings.map((booking) => (
+//         <div key={booking.id} className="border p-4 rounded mb-4">
+//           <p><strong>Service Date:</strong> {booking.date} {booking.time}</p>
+//           <p><strong>Status:</strong> {booking.status}</p>
 
-//             <div className="flex-1 w-full">
-//               <p><strong>Name:</strong> {expert.fullName}</p>
-//               <p><strong>Specialization:</strong> {expert.specialization}</p>
-//               <p><strong>Experience Level:</strong> {expert.experience}</p>
-//               <p><strong>Phone:</strong> {expert.phone}</p>
-//               <p><strong>Charges:</strong> {expert.charges}</p>
-//               <p className="border-t-2 mt-3 mb-3"></p>
-
-//               <div>
-//                 <h3 className="text-lg font-bold mb-2">Booking Details</h3>
-//                 <p><strong>Date:</strong> {booking.date}</p>
-//                 <p><strong>Time:</strong> {booking.time}</p>
-//               </div>
-//             </div>
-
-//             {/* Buttons */}
-//             <div className="mt-4 md:mt-0 flex flex-col gap-2 items-center text-center w-full md:w-auto">
-//               <button className="bg-blue-500 text-white p-2 rounded w-full md:w-40">Pay Online</button>
-//               <button className="bg-yellow-500 text-white p-2 rounded w-full md:w-40">Pending</button>
+//           {booking.status === "pending" && (
+//             <>
+//               <button className="mr-4 px-4 py-2 bg-yellow-400 rounded cursor-not-allowed" disabled>Pending</button>
 //               <button
-//                 onClick={cancelBooking}
-//                 className="bg-red-500 hover:bg-red-600 text-white p-2 rounded w-full md:w-40"
-//                 disabled={loading}
+//                 onClick={() => cancelBooking(booking.id)}
+//                 className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
 //               >
-//                 {loading ? 'Cancelling...' : 'Cancel Booking'}
+//                 Cancel Booking
 //               </button>
-//             </div>
-//           </div>
-//         )}
+//             </>
+//           )}
 
-//         {/* No booking message */}
-//         {!booking && userId && !loading && (
-//           <div className="text-gray-600 italic mt-12 mb-12 text-center text-lg">
-//             {/* No booking found for this user. */}
-//             You haven't made any bookings yet.
-//           </div>
-//         )}
+//           {booking.status === "accepted" && (
+//             <button className="px-4 py-2 bg-green-600 text-white rounded" disabled>Accepted</button>
+//           )}
 
-//         {/* Loading message */}
-//         {loading && (
-//           <div className="text-gray-600 italic mt-6 text-center text-lg">
-//             Cancelling booking...
-//           </div>
-//         )}
-//       </div>
+//           {booking.status === "rejected" && (
+//             <button className="px-4 py-2 bg-gray-600 text-white rounded" disabled>Rejected</button>
+//           )}
+
+//           {booking.status === "cancelled" && (
+//             <button className="px-4 py-2 bg-red-400 text-white rounded" disabled>Cancelled</button>
+//           )}
+//         </div>
+//       ))}
 //     </div>
 //   );
 // };
@@ -175,174 +214,14 @@
 
 
 
-import React, { useState, useEffect } from 'react';
-import { db, auth } from '../../config/firebase/config';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  getDoc,
-  deleteDoc,
-} from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
-const UserBookingActivity = () => {
-  const [userId, setUserId] = useState(null);
-  const [booking, setBooking] = useState(null);
-  const [bookingId, setBookingId] = useState(null);
-  const [expert, setExpert] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  // Get current user ID
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserId(user.uid);
-        console.log('Current User ID:', user.uid);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
 
-  // Fetch booking and expert with real-time updates
-  useEffect(() => {
-    if (!userId) return;
 
-    const bookingQuery = query(
-      collection(db, 'bookings'),
-      where('userId', '==', userId)
-    );
 
-    const unsubscribe = onSnapshot(bookingQuery, async (snapshot) => {
-      if (snapshot.empty) {
-        console.warn('No bookings found for this user.');
-        setBooking(null);
-        setExpert(null);
-        return;
-      }
 
-      const bookingDoc = snapshot.docs[0];
-      setBooking(bookingDoc.data());
-      setBookingId(bookingDoc.id);
 
-      const expertRef = doc(db, 'FYPusers', bookingDoc.data().expertId);
-      const expertSnap = await getDoc(expertRef);
 
-      if (expertSnap.exists()) {
-        setExpert(expertSnap.data());
-      } else {
-        const fallbackQuery = query(
-          collection(db, 'FYPusers'),
-          where('uid', '==', bookingDoc.data().expertId),
-          where('role', '==', 'expert')
-        );
-        const fallbackSnap = await getDocs(fallbackQuery);
 
-        if (!fallbackSnap.empty) {
-          setExpert(fallbackSnap.docs[0].data());
-        } else {
-          console.warn('Expert not found.');
-          setExpert(null);
-        }
-      }
-    });
 
-    return () => unsubscribe();
-  }, [userId]);
 
-  // Cancel booking
-  const cancelBooking = async () => {
-    if (!bookingId) return;
-    setLoading(true);
-    try {
-      await deleteDoc(doc(db, 'bookings', bookingId));
-      setBooking(null);
-      setExpert(null); // Clear expert as well
-      toast.success('Booking cancelled successfully!');
-    } catch (error) {
-      console.error('Failed to cancel booking:', error);
-      toast.error('Error cancelling booking.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div>
-      <ToastContainer />
-      {/* Header */}
-      <header className="w-full h-[70px] flex justify-between items-center bg-gradient-to-r from-orange-500 to-orange-600 px-6 md:px-16 lg:px-36 shadow">
-        <h1 className="text-white text-2xl md:text-3xl font-bold">My Booking Activity</h1>
-      </header>
-
-      <div className="px-4 py-6 max-w-screen-lg mx-auto sm:px-6 lg:px-[166px]">
-        {/* Expert Profile and Booking Info */}
-        {booking && expert && (
-          <div className="border p-4 rounded shadow flex flex-col md:flex-row items-center md:items-start gap-6">
-            {expert.profileUrl && (
-              <img
-                src={expert.profileUrl}
-                alt="Expert Profile"
-                className="w-32 h-32 md:w-48 md:h-48 object-cover border-4 shadow"
-              />
-            )}
-
-            <div className="flex-1 w-full">
-              <p><strong>Name:</strong> {expert.fullName}</p>
-              <p><strong>Specialization:</strong> {expert.specialization}</p>
-              <p><strong>Experience Level:</strong> {expert.experience}</p>
-              <p><strong>Phone:</strong> {expert.phone}</p>
-              <p><strong>Charges:</strong> {expert.charges}</p>
-              <p className="border-t-2 mt-3 mb-3"></p>
-
-              <div>
-                <h3 className="text-lg font-bold mb-2">Booking Details</h3>
-                <p><strong>Date:</strong> {booking.date}</p>
-                <p><strong>Time:</strong> {booking.time}</p>
-              </div>
-            </div>
-
-            {/* Buttons */}
-            <div className="mt-4 md:mt-0 flex flex-col gap-2 items-center text-center w-full md:w-auto">
-              <button className="bg-blue-500 text-white p-2 rounded w-full md:w-40">Pay Online</button>
-              <button
-                className={`p-2 rounded w-full md:w-40 text-white ${
-                  booking.status === "accepted" ? "bg-green-600" : "bg-yellow-500"
-                }`}
-              >
-                {booking.status === "accepted" ? "Accepted" : "Pending"}
-              </button>
-              <button
-                onClick={cancelBooking}
-                className="bg-red-500 hover:bg-red-600 text-white p-2 rounded w-full md:w-40"
-                disabled={loading}
-              >
-                {loading ? 'Cancelling...' : 'Cancel Booking'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* No booking message */}
-        {!booking && userId && !loading && (
-          <div className="text-gray-600 italic mt-12 mb-12 text-center text-lg">
-            You haven't made any bookings yet.
-          </div>
-        )}
-
-        {/* Loading message */}
-        {loading && (
-          <div className="text-gray-600 italic mt-6 text-center text-lg">
-            Cancelling booking...
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default UserBookingActivity;
