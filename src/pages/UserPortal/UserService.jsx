@@ -33,8 +33,10 @@ const UserService = () => {
                     <p className="text-sm sm:text-base md:text-lg text-gray-600 text-center mb-4">
                         If you require on-site assistance, choose this option to find a qualified expert for physical repairs.
                     </p>
-                    <button onClick={() => navigate('/allexpert')}
-                        className="mt-4 px-10 py-2 bg-[#0D003B] text-white font-semibold rounded-lg shadow-lg hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all">
+                    <button
+                        onClick={() => navigate('/allexpert?type=physical')}
+                        className="mt-4 px-10 py-2 bg-[#0D003B] text-white font-semibold rounded-lg shadow-lg hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                    >
                         Find Expert
                     </button>
                 </section>
@@ -45,8 +47,11 @@ const UserService = () => {
                     <p className="text-sm sm:text-base md:text-lg text-gray-600 text-center mb-4">
                         If you're unsure about the issue or need a virtual consultation, choose this option for remote diagnosis and troubleshooting.
                     </p>
-                    <button className="mt-4 px-10 py-2 bg-[#0D003B] text-white font-semibold rounded-lg shadow-lg hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all">
-                        Next
+                    <button
+                        onClick={() => navigate('/allexpert?type=virtual')}
+                        className="mt-4 px-10 py-2 bg-[#0D003B] text-white font-semibold rounded-lg shadow-lg hover:bg-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                    >
+                        Find Expert
                     </button>
                 </section>
             </main>
