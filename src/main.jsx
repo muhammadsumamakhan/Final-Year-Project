@@ -28,6 +28,7 @@ import ExpertProfile from './pages/ExpertPortal/ExpertProfile';
 import ExpertLoginActivity from './pages/ExpertPortal/ExpertLoginActivity'
 import UserLoginActivity from './pages/UserPortal/UserLoginActivity'
 import UserBookingActivity from './pages/UserPortal/UserBookingActivity'
+import VideoCallPage from './component/VideoCallPage'
 
 const router = createBrowserRouter([
   {
@@ -60,6 +61,7 @@ const router = createBrowserRouter([
       { path: 'expert-login-activity', element: <ExpertLoginActivity /> },
       { path: 'user-login-activity', element: <UserLoginActivity /> },
       { path: 'user-booking-activity', element: <UserBookingActivity /> },
+      { path: '/video-call/:callID', element: <VideoCallPage />},
   
     ]
   }
