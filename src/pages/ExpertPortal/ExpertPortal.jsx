@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import ExpertOrder from './ExpertOrder';
 import ExpertProfile from './ExpertProfile';
 import ExpertLoginActivity from './ExpertLoginActivity'
+import ExpertTest from './ExpertTest';
 
 const ExpertPortal = () => {
   const [expertData, setExpertData] = useState(null);
@@ -103,7 +104,9 @@ const ExpertPortal = () => {
         </header>
 
         <section>
-          {activeTab === "dashboard" && <p>Welcome to your expert dashboard.</p>}
+          {activeTab === "dashboard" && <p>Welcome to your expert dashboard.
+           <div><ExpertTest /> </div>
+            </p>}
           {activeTab === "orders" && <ExpertOrder />}
           {activeTab === "profile" && <ExpertProfile />}
           {activeTab === "Login Activity" && <ExpertLoginActivity />}
