@@ -1,113 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../config/firebase/config';
 
 const ManageExpertsRequest = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  const fetchRequests = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "ExpertQuiz"));
+      const pendingRequests = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.status === "Pending") {
+          pendingRequests.push({ id: docSnap.id, ...data });
+        }
+      });
+      setRequests(pendingRequests);
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const fakeOrders = [
-        {
-          id: 1,
-          name: "jhon",
-          status: "active",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 2,
-          name: "Order #102",
-          status: "Completed",
-          details: "Software Installation",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 3,
-          name: "Order #103",
-          status: "In Progress",
-          details: "System Upgrade",
-          image: "https://via.placeholder.com/50",
-        },
-      ];
-      setTimeout(() => setOrders(fakeOrders), 1000);
-    };
-
-    fetchOrders();
+    fetchRequests();
   }, []);
 
+  const handleAction = async (id, action) => {
+    try {
+      await updateDoc(doc(db, "ExpertQuiz", id), {
+        status: action,
+      });
+      setRequests((prev) =>
+        prev.filter((request) => request.id !== id)
+      );
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
 
+  if (loading) return <div className="p-4">Loading requests...</div>;
 
   return (
-    <div>
-      {/* Header */}
-      <header className="w-full h-[70px] flex justify-between items-center bg-orange-500 border-b px-4 sm:px-6 md:px-16 lg:px-32">
-        <button
-          onClick={() => navigate('/adminportal')}
-          className="flex items-center text-white text-lg sm:text-xl md:text-2xl font-bold transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-5 h-5 mr-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Manage Experts Request
-        </button>
-      </header>
-
-      <div className="p-6">
-        {/* Orders Section */}
-        <div className="max-w-xl mx-auto">
-          {orders.length === 0 ? (
-            <p className="text-gray-600">Loading orders...</p>
-          ) : (
-            <ul className="space-y-4">
-              {orders.map((order) => (
-                <li
-                  key={order.id}
-                  className="w-full p-4 bg-white rounded-lg shadow-lg flex justify-between items-center hover:bg-gray-100 transition"
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Pending Expert Quiz Requests</h2>
+      {requests.length === 0 ? (
+        <p>No pending requests.</p>
+      ) : (
+        <div className="space-y-4">
+          {requests.map((req) => (
+            <div
+              key={req.id}
+              className="border border-gray-300 rounded-lg p-4 shadow-sm bg-white"
+            >
+              <p><strong>Email:</strong> {req.email}</p>
+              <p><strong>Score:</strong> {req.score} / {req.total}</p>
+              <p><strong>Percentage:</strong> {req.percentage}%</p>
+              <p><strong>Result:</strong> {req.result}</p>
+              <p><strong>Status:</strong> {req.status}</p>
+              <div className="mt-3 space-x-3">
+                <button
+                  onClick={() => handleAction(req.id, "Accepted")}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
                 >
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src={order.image}
-                      alt={order.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800">{order.name}</h2>
-                      {/* Conditionally render the details if available */}
-                      {order.details && <p className="text-gray-500">{order.details}</p>}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2">
-
-                    <button
-                      onClick={() => handleAccept(order.id)}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                    >
-                      Accept
-                    </button>
-
-                    <button
-                      onClick={() => handleDelete(order.id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  Accept
+                </button>
+                <button
+                  onClick={() => handleAction(req.id, "Rejected")}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
-export default ManageExpertsRequest
+export default ManageExpertsRequest;
