@@ -23,12 +23,12 @@ const ExpertQuiz = () => {
     const [hasStarted, setHasStarted] = useState(false);
 
     const [hasSubmitted, setHasSubmitted] = useState(false);
-    const [quizStatus, setQuizStatus] = useState(null); // Pending, Accepted, Rejected
+    const [quizStatus, setQuizStatus] = useState(null);
     const [quizDocId, setQuizDocId] = useState(null);
 
     const progressPercent = ((currentQuestionIndex + 1) / questions.length) * 100;
 
-    const softwareQuestions = [
+     const softwareQuestions = [
         { id: 1, question: "What is the first step in troubleshooting a software issue?", options: ["Reinstall the software", "Check for updates", "Identify the problem", "Restart the computer"], correctAnswer: "Identify the problem" },
         { id: 2, question: "Which tool can help identify issues in Windows?", options: ["Task Manager", "Control Panel", "CMD", "Paint"], correctAnswer: "Task Manager" },
         { id: 3, question: "What does 'Safe Mode' do?", options: ["Increases screen brightness", "Runs only essential software/drivers", "Deletes temporary files", "Starts antivirus scan"], correctAnswer: "Runs only essential software/drivers" },
@@ -54,6 +54,7 @@ const ExpertQuiz = () => {
         { id: 10, question: "What unit is used to measure CPU speed?", options: ["GHz", "MB", "Watt", "RPM"], correctAnswer: "GHz" },
     ];
 
+    // 🧠 1st useEffect: Load quiz data and user quiz info
     useEffect(() => {
         const auth = getAuth();
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -79,7 +80,7 @@ const ExpertQuiz = () => {
                     setHasSubmitted(true);
                     setScore(quizData.score);
                     setQuizStatus(quizData.status);
-                    setQuizDocId(quizDoc.id);
+                    setQuizDocId(quizDoc.id); // 👈 required for real-time
                 }
 
                 setLoading(false);
@@ -89,41 +90,21 @@ const ExpertQuiz = () => {
         return () => unsubscribe();
     }, []);
 
+    // ✅ 2nd useEffect: Real-time listener for result status
     useEffect(() => {
-        const auth = getAuth();
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                const quizQuery = query(collection(db, "ExpertQuiz"), where("uid", "==", user.uid));
-                const quizSnap = await getDocs(quizQuery);
+        if (!quizDocId) return;
 
-                if (!quizSnap.empty) {
-                    const quizDoc = quizSnap.docs[0];
-                    const quizData = quizDoc.data();
-
-                    setHasSubmitted(true);
-                    setScore(quizData.score);
-                    setQuizStatus(quizData.status);
-                    setQuizDocId(quizDoc.id);
-
-                    // ✅ Real-time listener starts immediately
-                    const unsubSnapshot = onSnapshot(doc(db, "ExpertQuiz", quizDoc.id), (docSnap) => {
-                        const data = docSnap.data();
-                        if (data) {
-                            setQuizStatus(data.status);
-                        }
-                    });
-
-                    // Clean up snapshot listener on unmount
-                    return () => unsubSnapshot();
-                }
-
-                setLoading(false);
+        const unsubSnapshot = onSnapshot(doc(db, "ExpertQuiz", quizDocId), (docSnap) => {
+            const data = docSnap.data();
+            if (data) {
+                setQuizStatus(data.status); // 🔄 Real-time update
             }
         });
 
-        return () => unsubscribe();
-    }, []);
+        return () => unsubSnapshot();
+    }, [quizDocId]);
 
+    // ⏱️ Timer logic
     useEffect(() => {
         if (submitted) return;
         const interval = setInterval(() => {
@@ -192,9 +173,15 @@ const ExpertQuiz = () => {
                     {!hasStarted && hasSubmitted ? (
                         <div className="text-center space-y-6">
                             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">📝 Quiz Submitted</h2>
-                            {quizStatus === "Pending" && <p className="text-yellow-500 font-semibold text-lg">⏳ Quiz Result: Pending</p>}
-                            {quizStatus === "Accepted" && <p className="text-green-600 font-bold text-lg">✅ Result: Pass</p>}
-                            {quizStatus === "Rejected" && <p className="text-red-600 font-bold text-lg">❌ Result: Fail</p>}
+                            {!quizStatus ? (
+                                <p className="text-gray-500">🔄 Checking result status...</p>
+                            ) : quizStatus === "Pending" ? (
+                                <p className="text-yellow-500 font-semibold text-lg">⏳ Quiz Result: Pending</p>
+                            ) : quizStatus === "Accepted" ? (
+                                <p className="text-green-600 font-bold text-lg">✅ Result: Pass</p>
+                            ) : quizStatus === "Rejected" ? (
+                                <p className="text-red-600 font-bold text-lg">❌ Result: Fail</p>
+                            ) : null}
                         </div>
                     ) : !hasStarted ? (
                         <div className="text-center space-y-6">
@@ -217,14 +204,15 @@ const ExpertQuiz = () => {
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800">🧠 Expert Quiz</h2>
                                 {!submitted && (
-                                    <div className="text-red-600 font-semibold text-sm">⏱️ {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}</div>
+                                    <div className="text-red-600 font-semibold text-sm">
+                                        ⏱️ {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
+                                    </div>
                                 )}
                             </div>
 
                             <div className="w-full bg-gray-200 rounded-full h-4 mb-6">
                                 <div
-                                    className={`h-4 transition-all duration-300 ease-in-out ${progressPercent < 40 ? 'bg-red-500' : progressPercent < 80 ? 'bg-yellow-500' : 'bg-green-500'
-                                        }`}
+                                    className={`h-4 transition-all duration-300 ease-in-out ${progressPercent < 40 ? 'bg-red-500' : progressPercent < 80 ? 'bg-yellow-500' : 'bg-green-500'}`}
                                     style={{ width: `${progressPercent}%` }}
                                 />
                             </div>
