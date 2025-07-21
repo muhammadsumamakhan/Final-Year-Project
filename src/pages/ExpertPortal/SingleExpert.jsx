@@ -62,6 +62,7 @@ const SingleExpert = () => {
     }
 
     try {
+      const verificationCode = Math.floor(1000 + Math.random() * 9000);
       await addDoc(collection(db, "bookings"), {
         name,
         email,
@@ -72,7 +73,8 @@ const SingleExpert = () => {
         userId: user.uid,
         expertId: expert.uid, 
         status: "pending",
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        verificationCode,
       });
 
       toast.success(`Booking confirmed with ${expert.fullName}`);

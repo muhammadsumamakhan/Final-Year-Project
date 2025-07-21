@@ -1,103 +1,186 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from "react";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../config/firebase/config";
 import { useNavigate } from 'react-router-dom';
 
 const ManageUsers = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-  
-  useEffect(() => {
-    const fetchOrders = async () => {
-      const fakeOrders = [
-        {
-          id: 1,
-          name: "jhon",
-          status: "active",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 2,
-          name: "Order #102",
-          status: "Completed",
-          details: "Software Installation",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 3,
-          name: "Order #103",
-          status: "In Progress",
-          details: "System Upgrade",
-          image: "https://via.placeholder.com/50",
-        },
-      ];
-      setTimeout(() => setOrders(fakeOrders), 1000);
-    };
 
-    fetchOrders();
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "FYPusers"),
+      (snapshot) => {
+        const fetchedUsers = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(user => user.role === "user");
+        setUsers(fetchedUsers);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching users:", error);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
+  const filteredUsers = users.filter(user =>
+    user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.contact?.includes(searchTerm)
+  );
 
-
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this user account?")) {
+      try {
+        await deleteDoc(doc(db, "FYPusers", id));
+      } catch (error) {
+        console.error("Error deleting user:", error);
+      }
+    }
+  };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="w-full h-[70px] flex justify-between items-center bg-orange-500 border-b px-4 sm:px-6 md:px-16 lg:px-32">
-        <button
-          onClick={() => navigate('/adminportal')}
-          className="flex items-center text-white text-lg sm:text-xl md:text-2xl font-bold transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-5 h-5 mr-2"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-          </svg>
-          Manage Users
-        </button>
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+          <div className="flex items-center">
+            <button
+              onClick={() => navigate('/adminportal')}
+              className="mr-4 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Back to admin portal"
+            >
+              <svg className="h-5 w-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
+            <h1 className="text-xl font-semibold text-gray-800">User Management</h1>
+          </div>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+            {users.length} {users.length === 1 ? 'User' : 'Users'}
+          </span>
+        </div>
       </header>
 
-      <div className="p-6">
-        {/* Orders Section */}
-        <div className="max-w-xl mx-auto">
-          {orders.length === 0 ? (
-            <p className="text-gray-600">Loading orders...</p>
-          ) : (
-            <ul className="space-y-4">
-              {orders.map((order) => (
-                <li
-                  key={order.id}
-                  className="w-full p-4 bg-white rounded-lg shadow-lg flex justify-between items-center hover:bg-gray-100 transition"
-                >
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src={order.image}
-                      alt={order.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800">{order.name}</h2>
-                      {/* Conditionally render the details if available */}
-                      {order.details && <p className="text-gray-500">{order.details}</p>}
-                    </div>
-                  </div>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {/* Search and Filter Bar */}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="relative flex-1 max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search users..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
 
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleDelete(order.id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        {/* User Table */}
+        <div className="bg-white shadow overflow-hidden rounded-lg border border-gray-200">
+          {loading ? (
+            <div className="p-12 text-center">
+              <div className="inline-flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                <span className="ml-3 text-sm font-medium text-gray-700">Loading users...</span>
+              </div>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-12 text-center">
+              <svg
+                className="mx-auto h-16 w-16 text-gray-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-700">No users found</h3>
+              <p className="mt-2 text-gray-500">
+                {searchTerm ? "No matching users found" : "No user accounts in the system"}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      CNIC
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Address
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <img
+                              className="h-10 w-10 rounded-full object-cover"
+                              src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || '')}&background=random`}
+                              alt={user.fullName || 'User'}
+                            />
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.fullName || 'No name'}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{user.contact || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{user.cnic || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs truncate">{user.address || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="text-red-600 hover:text-red-900 font-medium transition-colors"
+                          aria-label={`Delete user ${user.fullName}`}
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 };

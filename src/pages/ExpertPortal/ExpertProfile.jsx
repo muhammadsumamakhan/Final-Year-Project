@@ -110,9 +110,9 @@ const ExpertProfile = () => {
               </div>
             </div>
 
-            <button className="mt-8 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition">
+            {/* <button className="mt-8 px-6 py-2 bg-orange-500 text-white rounded-full hover:bg-orange-600 transition">
               Edit Profile
-            </button>
+            </button> */}
           </div>
         </div>
         

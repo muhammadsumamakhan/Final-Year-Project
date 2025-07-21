@@ -39,10 +39,9 @@ const UserBookingActivity = () => {
   const joinCall = (booking) => navigate(`/video-call/${booking.id}`);
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <header className="bg-orange-500 p-4">
-        <h1 className="text-white text-2xl">My Bookings</h1>
-      </header>
+    <div>
+      <header className="w-full h-[70px] flex justify-between items-center bg-gradient-to-r from-orange-500 to-orange-600 px-6 md:px-16 lg:px-36 shadow-md">
+        <h1 className="text-white text-3xl font-bold tracking-wide">My Bookings</h1>      </header>
       <main className="mt-4">
         {bookings.map(bk => {
           const expert = experts[bk.expertId];

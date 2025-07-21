@@ -193,8 +193,19 @@ const ExpertQuiz = () => {
                         <div className="text-center space-y-6">
                             <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">📝 Quiz Submitted</h2>
                             {quizStatus === "Pending" && <p className="text-yellow-500 font-semibold text-lg">⏳ Quiz Result: Pending</p>}
-                            {quizStatus === "Accepted" && <p className="text-green-600 font-bold text-lg">✅ Result: Pass</p>}
-                            {quizStatus === "Rejected" && <p className="text-red-600 font-bold text-lg">❌ Result: Fail</p>}
+                            {quizStatus === "Accepted" && (
+                                <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-xl">
+                                    <p className="text-green-700 font-bold text-lg">✅ Result: Pass</p>
+                                    <p className="text-green-600 mt-1">Congratulations! You have successfully passed the expert quiz and are now eligible to take bookings.</p>
+                                </div>
+                            )}
+
+                            {quizStatus === "Rejected" && (
+                                <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-xl">
+                                    <p className="text-red-700 font-bold text-lg">❌ Result: Fail</p>
+                                    <p className="text-red-600 mt-1">Unfortunately, you did not pass the expert quiz. Please try again after preparing more thoroughly.</p>
+                                </div>
+                            )}
                         </div>
                     ) : !hasStarted ? (
                         <div className="text-center space-y-6">

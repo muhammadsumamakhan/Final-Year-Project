@@ -32,7 +32,7 @@ const Navbar = () => {
             if (data.role === "expert" || data.role === "user") {
               setUserRole(data.role);
               console.log(data.role);
-              
+
             } else {
               console.warn("Role not defined correctly in Firestore.");
               setUserRole(null);
@@ -117,7 +117,7 @@ const Navbar = () => {
                       className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                       onClick={() => setDropdownOpen(false)}
                     >
-                      Expert Portal
+                      Dashboard
                     </Link>
                   ) : userRole === "user" ? (
                     <>
@@ -128,28 +128,8 @@ const Navbar = () => {
                       >
                         Dashboard
                       </Link>
-                      <Link
-                        to="/user-profile"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        My Profile
-                      </Link>
-                      <Link
-                        to="/user-booking-activity"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        My Booking
-                      </Link>
-                      <Link
-                        to="/user-login-activity"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => setDropdownOpen(false)}
-                      >
-                        My Login Activity
-                      </Link>
-                    
+
+
                     </>
                   ) : (
                     <div className="block px-4 py-2 text-gray-700">Unauthorized</div>

@@ -104,7 +104,7 @@ const ExpertPortal = () => {
         </header>
 
         <section>
-          {activeTab === "dashboard" && <p>Welcome to your expert dashboard.
+          {activeTab === "dashboard" && <p>
            <div><ExpertQuiz /> </div>
             </p>}
           {activeTab === "orders" && <ExpertOrder />}

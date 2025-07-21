@@ -15,7 +15,6 @@ import UserService from './pages/UserPortal/UserService'
 import Allexpert from './pages/ExpertPortal/Allexpert'
 import SingleExpert from './pages/ExpertPortal/SingleExpert'
 import ExpertPortal from './pages/ExpertPortal/ExpertPortal';
-import ExpertTest from './pages/ExpertPortal/ExpertTest';
 import ExpertOrder from './pages/ExpertPortal/ExpertOrder';
 import AdminRegister from './pages/AdminPortal/AdminLogin/AdminRegister';
 import AdminLogin from './pages/AdminPortal/AdminLogin/AdminLogin';
@@ -49,7 +48,6 @@ const router = createBrowserRouter([
       { path: 'allexpert', element: <Allexpert /> },
       { path: '/expert/:id', element: <SingleExpert />},
       { path: 'expertportal', element: <ExpertPortal /> },
-      { path: 'experttest', element: <ExpertTest /> },
       { path: 'expertorder', element: <ExpertOrder /> },
       { path: 'adminlogin', element: <AdminLogin /> },
       { path: 'adminregister', element: <AdminRegister /> },
