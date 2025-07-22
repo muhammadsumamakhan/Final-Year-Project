@@ -1,48 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { db } from "../../config/firebase/config";
+import { useNavigate } from "react-router-dom";
 
 const ManageExperts = () => {
-
+  const [experts, setExperts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
-
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      const fakeOrders = [
-        {
-          id: 1,
-          name: "jhon",
-          status: "active",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 2,
-          name: "Order #102",
-          status: "Completed",
-          details: "Software Installation",
-          image: "https://via.placeholder.com/50",
-        },
-        {
-          id: 3,
-          name: "Order #103",
-          status: "In Progress",
-          details: "System Upgrade",
-          image: "https://via.placeholder.com/50",
-        },
-      ];
-      setTimeout(() => setOrders(fakeOrders), 1000);
-    };
-
-    fetchOrders();
+    const unsubscribe = onSnapshot(
+      collection(db, "FYPusers"),
+      (snapshot) => {
+        const fetchedExperts = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(user => user.role === "expert");
+        setExperts(fetchedExperts);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error fetching experts:", error);
+        setLoading(false);
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
+  const filteredExperts = experts.filter(expert =>
+    expert.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expert.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expert.contact?.includes(searchTerm) ||
+    expert.phone?.includes(searchTerm) ||
+    expert.specialization?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expert.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expert.serviceArea?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expert.nationalId?.includes(searchTerm)
+  );
 
-  
-
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this expert account?")) {
+      try {
+        await deleteDoc(doc(db, "FYPusers", id));
+      } catch (error) {
+        console.error("Error deleting expert:", error);
+      }
+    }
+  };
 
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200">
       {/* Header */}
       <header className="w-full h-[70px] flex justify-between items-center bg-orange-500 border-b px-4 sm:px-6 md:px-16 lg:px-32">
         <button
@@ -62,47 +69,126 @@ const ManageExperts = () => {
         </button>
       </header>
 
-      <div className="p-6">
-        {/* Orders Section */}
-        <div className="max-w-xl mx-auto">
-          {orders.length === 0 ? (
-            <p className="text-gray-600">Loading orders...</p>
-          ) : (
-            <ul className="space-y-4">
-              {orders.map((order) => (
-                <li
-                  key={order.id}
-                  className="w-full p-4 bg-white rounded-lg shadow-lg flex justify-between items-center hover:bg-gray-100 transition"
-                >
-                  <div className="flex items-center space-x-4">
-                    <img
-                      src={order.image}
-                      alt={order.name}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800">{order.name}</h2>
-                      {/* Conditionally render the details if available */}
-                      {order.details && <p className="text-gray-500">{order.details}</p>}
-                    </div>
-                  </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6">
+        {/* Search Bar */}
+        <div>
+          <div className="relative w-full sm:max-w-sm">
+            <input
+              type="text"
+              placeholder="Search by name, contact, specialization or city..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="absolute left-3 top-2.5 text-gray-400">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M16 10a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
 
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleDelete(order.id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto rounded-lg shadow bg-white">
+          {loading ? (
+            <div className="p-10 text-center text-orange-500 font-medium">Loading Experts...</div>
+          ) : filteredExperts.length === 0 ? (
+            <div className="p-10 text-center text-orange-500">No matching Experts found.</div>
+          ) : (
+            <table className="min-w-full text-sm text-gray-700 whitespace-nowrap">
+              <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase">
+                <tr>
+                  <th className="px-6 py-3 text-left">Expert</th>
+                  <th className="px-6 py-3 text-left">Specialization</th>
+                  <th className="px-6 py-3 text-left">Service Area</th>
+                  <th className="px-6 py-3 text-left">City</th>
+                  <th className="px-6 py-3 text-left">Contact</th>
+                  <th className="px-6 py-3 text-left">National ID</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredExperts.map((expert) => (
+                  <tr key={expert.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 flex items-center space-x-3">
+                      <img
+                        className="w-10 h-10 rounded-full object-cover"
+                        src={
+                          expert.photoURL || expert.profileUrl ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.fullName || "")}`
+                        }
+                        alt="Expert"
+                      />
+                      <span className="font-medium text-gray-900">{expert.fullName || "No Name"}</span>
+                    </td>
+                    <td className="px-6 py-4">{expert.specialization || "-"}</td>
+                    <td className="px-6 py-4">{expert.serviceArea || "-"}</td>
+                    <td className="px-6 py-4">{expert.city || "-"}</td>
+                    <td className="px-6 py-4">{expert.contact || expert.phone || "-"}</td>
+                    <td className="px-6 py-4">{expert.nationalId || expert.cnic || "-"}</td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleDelete(expert.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition"
+                        title="Delete Expert"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      </div>
-    </div>
-  )
-}
 
-export default ManageExperts
+        {/* Mobile Card View */}
+        <div className="sm:hidden space-y-4">
+          {loading ? (
+            <div className="p-6 text-center text-orange-500 font-medium">Loading experts...</div>
+          ) : filteredExperts.length === 0 ? (
+            <div className="p-6 text-center text-orange-500">No matching experts found.</div>
+          ) : (
+            filteredExperts.map((expert) => (
+              <div key={expert.id} className="bg-white p-4 rounded-lg shadow space-y-2">
+                <div className="flex items-center space-x-3">
+                  <img
+                    className="w-10 h-10 rounded-full object-cover"
+                    src={
+                      expert.photoURL || expert.profileUrl ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.fullName || "")}`
+                    }
+                    alt="Expert"
+                  />
+                  <div>
+                    <span className="font-semibold text-gray-900">{expert.fullName || "No Name"}</span>
+                    <p className="text-sm text-gray-600">{expert.specialization || "No specialization"}</p>
+                    <p className="text-sm text-gray-600">{expert.serviceArea || "No service area"}</p>
+                    <p className="text-sm text-gray-600">{expert.city || "No city"}</p>
+                  </div>
+                </div>
+                <p><strong>Contact:</strong> {expert.contact || expert.phone || "-"}</p>
+                <p><strong>National ID:</strong> {expert.nationalId || expert.cnic || "-"}</p>
+                <button
+                  onClick={() => handleDelete(expert.id)}
+                  className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition"
+                  title="Delete Expert"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Delete
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ManageExperts;
