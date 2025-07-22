@@ -63,7 +63,7 @@ const ExpertQuiz = () => {
                 userSnap.forEach((docSnap) => {
                     const data = docSnap.data();
                     if (data.role === "expert") {
-                        if (data.specialization === "hardware") {
+                        if (data.specialization === "Hardware Repair") {
                             setQuestions(hardwareQuestions);
                         } else if (data.specialization === "Software Troubleshooting") {
                             setQuestions(softwareQuestions);

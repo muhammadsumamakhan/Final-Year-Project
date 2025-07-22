@@ -328,9 +328,7 @@ const ExpertRegister = () => {
                 <option value="">Select Specialization</option>
                 <option value="Hardware Repair">Hardware Repair</option>
                 <option value="Software Troubleshooting">Software Troubleshooting</option>
-                <option value="Networking">Networking</option>
-                <option value="Data Recovery">Data Recovery</option>
-                <option value="other">Other</option>
+                
               </select>
             </div>
 
