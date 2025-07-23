@@ -180,7 +180,7 @@ const Navbar = () => {
             <Link to="/contact" className="hover:text-orange-500" onClick={closeMobileMenu}>Contact</Link>
 
             {user ? (
-              <div className="relative">
+              <div>
                 <button
                   className="flex items-center space-x-2 text-gray-700"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -193,35 +193,33 @@ const Navbar = () => {
                   <span>{user.displayName || "User"}</span>
                 </button>
 
+                {/* Dropdown only for mobile */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md">
-                    {userRole === "expert" ? (
+                  <div className="mt-2 w-full bg-white border rounded shadow-md">
+                    {(userRole === "expert" || userRole === "user") && (
                       <Link
-                        to="/expertportal"
+                        to={userRole === "expert" ? "/expertportal" : "/userportal"}
                         className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
                         onClick={() => {
-                          setDropdownOpen(false);
-                          closeMobileMenu();
+                          // Delay menu close to allow Link to navigate
+                          setTimeout(() => {
+                            setDropdownOpen(false);
+                            closeMobileMenu();
+                          }, 100);
                         }}
                       >
-                        Expert Portal
+                        Dashboard
                       </Link>
-                    ) : userRole === "user" ? (
-                      <Link
-                        to="/userportal"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => {
-                          setDropdownOpen(false);
-                          closeMobileMenu();
-                        }}
-                      >
-                        User Portal
-                      </Link>
-                    ) : (
+                    )}
+                    {userRole !== "expert" && userRole !== "user" && (
                       <div className="block px-4 py-2 text-gray-700">Unauthorized</div>
                     )}
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        closeMobileMenu();
+                        handleLogout();
+                      }}
                       className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                     >
                       Sign Out
