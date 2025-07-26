@@ -16,40 +16,40 @@ const OurTeam = () => {
                         className="w-full h-auto mb-4 rounded-lg"
                     />
                     <h2 className="text-xl text-[#0D003B] font-semibold  hover:text-orange-500 transition-all cursor-pointer">MUHAMMAD <br />SUMAMA <br />KHAN</h2>
-                    <p className="text-gray-500">Founder</p>
+                    {/* <p className="text-gray-500">Founder</p> */}
                 </div>
 
                 {/* Team Member 2 */}
                 <div className="bg-gray-100 p-6 rounded-lg shadow-lg max-w-[280px] text-center">
                     <img
-                        src="https://i.ibb.co/yVJBYFG/businessman-character-avatar-isolated-24877-60111.jpg"
-                        alt="MSK"
+                        src="https://i.ibb.co/pr6PqLzS/M.png"
+                        alt="ABDUL MUQEET"
                         className="w-full h-auto mb-4 rounded-lg"
                     />
                     <h2 className="text-xl text-[#0D003B] font-semibold  hover:text-orange-500 transition-all cursor-pointer">ABDUL MUQEET</h2>
-                    <p className="text-gray-500">Founder</p>
+                    {/* <p className="text-gray-500">Founder</p> */}
                 </div>
 
                 {/* Team Member 3 */}
                 <div className="bg-gray-100 p-6 rounded-lg shadow-lg max-w-[280px] text-center">
                     <img
-                        src="https://i.ibb.co/yVJBYFG/businessman-character-avatar-isolated-24877-60111.jpg"
-                        alt="MSK"
+                        src="https://i.ibb.co/ZRrxdBM6/Shaheer.jpg"
+                        alt="SHAHEER KAMRAN"
                         className="w-full h-auto mb-4 rounded-lg"
                     />
                     <h2 className="text-xl text-[#0D003B] font-semibold  hover:text-orange-500 transition-all cursor-pointer">SHAHEER KAMRAN</h2>
-                    <p className="text-gray-500">Founder</p>
+                    {/* <p className="text-gray-500">Founder</p> */}
                 </div>
 
                 {/* Team Member 4 */}
                 <div className="bg-gray-100 p-6 rounded-lg shadow-lg max-w-[280px] text-center">
                     <img
-                        src="https://i.ibb.co/yVJBYFG/businessman-character-avatar-isolated-24877-60111.jpg"
-                        alt="MSK"
+                        src="https://i.ibb.co/pBw3tFVN/HH.png"
+                        alt="HABIB JALISI"
                         className="w-full h-auto mb-4 rounded-lg"
                     />
                     <h2 className="text-xl text-[#0D003B] font-semibold  hover:text-orange-500 transition-all cursor-pointer">HABIB JALISI</h2>
-                    <p className="text-gray-500">Founder</p>
+                    {/* <p className="text-gray-500">Founder</p> */}
                 </div>
             </div>
         </section>
