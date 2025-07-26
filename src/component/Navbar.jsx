@@ -32,7 +32,6 @@ const Navbar = () => {
             if (data.role === "expert" || data.role === "user") {
               setUserRole(data.role);
               console.log(data.role);
-
             } else {
               console.warn("Role not defined correctly in Firestore.");
               setUserRole(null);
@@ -41,11 +40,9 @@ const Navbar = () => {
             console.warn("No document found in FYPusers with UID:", currentUser.uid);
             setUserRole(null);
           }
-
         } catch (error) {
           console.error("Error fetching role from Firestore:", error);
         }
-
       } else {
         setUser(null);
         setUserRole(null);
@@ -57,8 +54,14 @@ const Navbar = () => {
 
   // Handle user logout
   const handleLogout = async () => {
-    await signOut(auth);
-    navigate("/");
+    try {
+      await signOut(auth);
+      setDropdownOpen(false);
+      setMenuOpen(false);
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   // Close dropdown when clicking outside
@@ -75,10 +78,11 @@ const Navbar = () => {
   // Close mobile menu when a link is clicked
   const closeMobileMenu = () => {
     setMenuOpen(false);
+    setDropdownOpen(false);
   };
 
   return (
-    <nav className="bg-white shadow-md">
+    <nav className="bg-white shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <div className="text-orange-500 text-2xl font-bold">
@@ -87,56 +91,81 @@ const Navbar = () => {
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center space-x-6 text-gray-700">
-          <Link to="/" className="hover:text-orange-500">Home</Link>
-          <Link to="/about" className="hover:text-orange-500">About Us</Link>
-          <Link to="/service" className="hover:text-orange-500">Service</Link>
-          <Link to="/contact" className="hover:text-orange-500">Contact</Link>
+          <Link to="/" className="hover:text-orange-500 transition-colors">Home</Link>
+          <Link to="/about" className="hover:text-orange-500 transition-colors">About Us</Link>
+          <Link to="/service" className="hover:text-orange-500 transition-colors">Service</Link>
+          <Link to="/contact" className="hover:text-orange-500 transition-colors">Contact</Link>
         </div>
 
-        {/* Authentication Actions */}
+        {/* Desktop Authentication Actions */}
         <div className="hidden md:block relative" ref={dropdownRef}>
           {user ? (
             <div className="relative">
               <button
-                className="flex items-center space-x-2 text-gray-700"
+                className="flex items-center space-x-2 text-gray-700 hover:text-orange-500 transition-colors"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
+                aria-label="User menu"
+                aria-expanded={dropdownOpen}
               >
                 <img
                   src={user.photoURL || "https://via.placeholder.com/40"}
                   alt="Profile"
-                  className="w-10 h-10 rounded-full"
+                  className="w-10 h-10 rounded-full border-2 border-orange-500"
                 />
                 <span>{user.displayName || "User"}</span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md">
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-50">
                   {userRole === "expert" ? (
-                    <Link
-                      to="/expertportal"
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Dashboard
-                    </Link>
-                  ) : userRole === "user" ? (
                     <>
                       <Link
-                        to="/userportal"
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        to="/"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-orange-500 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        to="/expertportal"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-orange-500 transition-colors"
                         onClick={() => setDropdownOpen(false)}
                       >
                         Dashboard
                       </Link>
-
-
+                    </>
+                  ) : userRole === "user" ? (
+                    <>
+                      <Link
+                        to="/"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-orange-500 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Home
+                      </Link>
+                      <Link
+                        to="/userportal"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-orange-500 transition-colors"
+                        onClick={() => setDropdownOpen(false)}
+                      >
+                        Dashboard
+                      </Link>
                     </>
                   ) : (
-                    <div className="block px-4 py-2 text-gray-700">Unauthorized</div>
+                    <div className="block px-4 py-2 text-gray-700">Loading role...</div>
                   )}
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-orange-500 transition-colors"
                   >
                     Sign Out
                   </button>
@@ -144,12 +173,14 @@ const Navbar = () => {
               )}
             </div>
           ) : (
-            <Link
-              to="/userlogin"
-              className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-all"
-            >
-              Login
-            </Link>
+            <div className="flex space-x-4">
+              <Link
+                to="/userlogin"
+                className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors shadow-md"
+              >
+                Login
+              </Link>
+            </div>
           )}
         </div>
 
@@ -157,84 +188,133 @@ const Navbar = () => {
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="md:hidden text-orange-500 focus:outline-none"
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-          </svg>
+          {menuOpen ? (
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          )}
         </button>
       </div>
 
-      {/* Mobile Dropdown */}
+      {/* Mobile Dropdown Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white shadow-md">
+        <div className="md:hidden bg-white shadow-lg">
           <div className="flex flex-col space-y-4 py-4 px-6">
-            <Link to="/" className="hover:text-orange-500" onClick={closeMobileMenu}>Home</Link>
-            <Link to="/about" className="hover:text-orange-500" onClick={closeMobileMenu}>About Us</Link>
-            <Link to="/service" className="hover:text-orange-500" onClick={closeMobileMenu}>Service</Link>
-            <Link to="/contact" className="hover:text-orange-500" onClick={closeMobileMenu}>Contact</Link>
+            <Link
+              to="/"
+              className="text-gray-700 hover:text-orange-500 transition-colors py-2 border-b border-gray-100"
+              onClick={closeMobileMenu}
+            >
+              Home
+            </Link>
+            <Link
+              to="/about"
+              className="text-gray-700 hover:text-orange-500 transition-colors py-2 border-b border-gray-100"
+              onClick={closeMobileMenu}
+            >
+              About Us
+            </Link>
+            <Link
+              to="/service"
+              className="text-gray-700 hover:text-orange-500 transition-colors py-2 border-b border-gray-100"
+              onClick={closeMobileMenu}
+            >
+              Service
+            </Link>
+            <Link
+              to="/contact"
+              className="text-gray-700 hover:text-orange-500 transition-colors py-2 border-b border-gray-100"
+              onClick={closeMobileMenu}
+            >
+              Contact
+            </Link>
 
             {user ? (
-              <div>
-                <button
-                  className="flex items-center space-x-2 text-gray-700"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                >
+              <div className="pt-2">
+                <div className="flex items-center space-x-3 py-3 border-b border-gray-100">
                   <img
                     src={user.photoURL || "https://via.placeholder.com/40"}
                     alt="Profile"
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full border border-orange-500"
                   />
-                  <span>{user.displayName || "User"}</span>
-                </button>
-
-                {/* Dropdown only for mobile */}
-                {dropdownOpen && (
-                  <div className="mt-2 w-full bg-white border rounded shadow-md">
-                    {(userRole === "expert" || userRole === "user") && (
-                      <Link
-                        to={userRole === "expert" ? "/expertportal" : "/userportal"}
-                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
-                        onClick={() => {
-                          // Delay menu close to allow Link to navigate
-                          setTimeout(() => {
-                            setDropdownOpen(false);
-                            closeMobileMenu();
-                          }, 100);
-                        }}
-                      >
-                        Dashboard
-                      </Link>
-                    )}
-                    {userRole !== "expert" && userRole !== "user" && (
-                      <div className="block px-4 py-2 text-gray-700">Unauthorized</div>
-                    )}
-                    <button
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        closeMobileMenu();
-                        handleLogout();
-                      }}
-                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign Out
-                    </button>
+                  <div>
+                    <p className="font-medium text-gray-700">{user.displayName || "User"}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
                   </div>
+                </div>
+
+                {userRole === "expert" && (
+                  <>
+                    <Link
+                      to="/"
+                      className="block py-2 px-4 text-gray-700 hover:text-orange-500 transition-colors"
+                      onClick={closeMobileMenu}
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      to="/expertportal"
+                      className="block py-2 px-4 text-gray-700 hover:text-orange-500 transition-colors"
+                      onClick={closeMobileMenu}
+                    >
+                      Dashboard
+                    </Link>
+                  </>
                 )}
+                {userRole === "user" && (
+                  <>
+                    <Link
+                      to="/"
+                      className="block py-2 px-4 text-gray-700 hover:text-orange-500 transition-colors"
+                      onClick={closeMobileMenu}
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      to="/userportal"
+                      className="block py-2 px-4 text-gray-700 hover:text-orange-500 transition-colors"
+                      onClick={closeMobileMenu}
+                    >
+                      Dashboard
+                    </Link>
+                  </>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left py-2 px-4 mt-2 text-gray-700 hover:text-orange-500 transition-colors border-t border-gray-100"
+                >
+                  Sign Out
+                </button>
               </div>
             ) : (
-              <Link
-                to="/userlogin"
-                className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-all"
-                onClick={closeMobileMenu}
-              >
-                Login
-              </Link>
+              <div className="flex flex-col space-y-3 pt-2">
+                <Link
+                  to="/userlogin"
+                  className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-center shadow-md"
+                  onClick={closeMobileMenu}
+                >
+                  Login
+                </Link>
+              </div>
             )}
           </div>
         </div>
