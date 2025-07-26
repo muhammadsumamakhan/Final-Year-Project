@@ -3,8 +3,9 @@ import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 
-const APP_ID = 297250868;
-const SERVER_SECRET = 'b629a7c9f6478129ba54a3ffb5623740';
+const APP_ID = 925009695;
+const SERVER_SECRET = '799364b76389affb5240b656051b4f8f';
+
 
 export default function VideoCallPage() {
   const { callID } = useParams();
