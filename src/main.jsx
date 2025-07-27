@@ -29,6 +29,14 @@ import UserLoginActivity from './pages/UserPortal/UserLoginActivity'
 import UserBookingActivity from './pages/UserPortal/UserBookingActivity'
 import VideoCallPage from './component/VideoCallPage'
 import ExpertQuiz from './pages/ExpertPortal/ExpertQuiz'
+import PrivacyPolicy from './pages/Policy/PrivacyPolicy';
+import ReturnRefundPolicy from './pages/Policy/ReturnRefundPolicy';
+import ShippingPolicy from './pages/Policy/ShippingPolicy';
+import TermsAndConditions from './pages/Policy/TermsAndConditions';
+import LaptopRepair from './pages/OurServices/LaptopRepair';
+import ComputerRepair from './pages/OurServices/ComputerRepair';
+import AppleRepair from './pages/OurServices/AppleRepair';
+import DataRecovery from './pages/OurServices/DataRecovery';
 
 const router = createBrowserRouter([
   {
@@ -46,7 +54,7 @@ const router = createBrowserRouter([
       { path: 'userportal', element: <UserPortal /> },
       { path: 'userservice', element: <UserService /> },
       { path: 'allexpert', element: <Allexpert /> },
-      { path: '/expert/:id', element: <SingleExpert />},
+      { path: '/expert/:id', element: <SingleExpert /> },
       { path: 'expertportal', element: <ExpertPortal /> },
       { path: 'expertorder', element: <ExpertOrder /> },
       { path: 'adminlogin', element: <AdminLogin /> },
@@ -60,9 +68,17 @@ const router = createBrowserRouter([
       { path: 'expert-login-activity', element: <ExpertLoginActivity /> },
       { path: 'user-login-activity', element: <UserLoginActivity /> },
       { path: 'user-booking-activity', element: <UserBookingActivity /> },
-      { path: '/video-call/:callID', element: <VideoCallPage />},
-      { path: '/expertquiz', element: <ExpertQuiz />},
-  
+      { path: '/video-call/:callID', element: <VideoCallPage /> },
+      { path: '/expertquiz', element: <ExpertQuiz /> },
+      { path: 'privacy-policy', element: <PrivacyPolicy /> },
+      { path: 'return-refund-policy', element: <ReturnRefundPolicy /> },
+      { path: 'shipping-policy', element: <ShippingPolicy /> },
+      { path: 'terms-and-conditions', element: <TermsAndConditions /> },
+      { path: 'laptop-repair', element: <LaptopRepair /> },
+      { path: 'computer-repair', element: <ComputerRepair /> },
+      { path: 'apple-repair', element: <AppleRepair /> },
+      { path: 'data-recovery', element: <DataRecovery /> },
+
     ]
   }
 ]);
