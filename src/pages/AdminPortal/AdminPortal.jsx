@@ -60,6 +60,7 @@ const AdminPortal = () => {
     { name: "Manage Customers", path: "/admin-manage-users" },
     { name: "Manage Experts", path: "/admin-manage-experts" },
     { name: "Manage Experts Request", path: "/admin-manage-experts-request" },
+    { name: "Manage Customers Payment", path: "/admin-manage-payments" },
   ];
 
   return (

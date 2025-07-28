@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc } from "firebase/firestore";
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, addDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from '../../config/firebase/config';
 import { useNavigate } from 'react-router-dom';
 import { ZegoUIKitPrebuilt } from '@zegocloud/zego-uikit-prebuilt';
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const APP_ID = 925009695;
 const SERVER_SECRET = '799364b76389affb5240b656051b4f8f';
@@ -18,6 +20,10 @@ const UserBookingActivity = () => {
   const [showCallModal, setShowCallModal] = useState(false);
   const [currentCallBooking, setCurrentCallBooking] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   // Check for mobile view
@@ -81,8 +87,10 @@ const UserBookingActivity = () => {
   const cancelBooking = async (id) => {
     try {
       await updateDoc(doc(db, "bookings", id), { status: "cancelled" });
+      toast.success("Booking cancelled successfully");
     } catch (error) {
       console.error("Error cancelling booking:", error);
+      toast.error("Failed to cancel booking");
     }
   };
 
@@ -90,10 +98,86 @@ const UserBookingActivity = () => {
     try {
       if (window.confirm("Are you sure you want to permanently delete this booking?")) {
         await deleteDoc(doc(db, "bookings", id));
+        toast.success("Booking deleted successfully");
       }
     } catch (error) {
       console.error("Error deleting booking:", error);
-      alert("Failed to delete booking. Please try again.");
+      toast.error("Failed to delete booking");
+    }
+  };
+
+  // Cloudinary Upload Widget Function
+  const openUploadWidget = () => {
+    if (!window.cloudinary) {
+      toast.error("Cloudinary is not loaded yet. Try again later.");
+      return;
+    }
+    let myWidget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: "dnak9yzfk",
+        uploadPreset: "exp-hack",
+        sources: ['local', 'camera'],
+        cropping: false,
+        multiple: false,
+        maxImageFileSize: 5000000,
+        clientAllowedFormats: ['jpg', 'jpeg', 'png']
+      },
+      (error, result) => {
+        if (!error && result && result.event === "success") {
+          setImageUrl(result.info.secure_url);
+          toast.success("Payment proof uploaded successfully!");
+        } else if (error) {
+          console.error("Upload Error:", error);
+          toast.error("Failed to upload payment proof!");
+        }
+      }
+    );
+    myWidget.open();
+  };
+
+  // Handle payment submission
+  const handleSubmitPayment = async () => {
+    if (!selectedBooking) return;
+    
+    if (!imageUrl) {
+      toast.error("Please upload a payment screenshot first");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Create a new payment document in Firestore
+      const paymentData = {
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous',
+        expertId: selectedBooking.expertId,
+        expertName: experts[selectedBooking.expertId]?.fullName || 'Unknown Expert',
+        bookingId: selectedBooking.id,
+        amount: experts[selectedBooking.expertId]?.charges || 0,
+        screenshotUrl: imageUrl,
+        status: 'pending', // pending, verified, rejected
+        paymentMethod: 'easypaisa',
+        timestamp: new Date().toISOString(),
+      };
+
+      // Add to payments collection
+      const paymentsRef = collection(db, "UserPayments");
+      await addDoc(paymentsRef, paymentData);
+
+      // Update booking payment status
+      await updateDoc(doc(db, "bookings", selectedBooking.id), {
+        paymentStatus: 'pending'
+      });
+
+      toast.success("Payment submitted successfully! The expert will verify your payment.");
+      setShowModal(false);
+      setImageUrl('');
+    } catch (error) {
+      console.error("Error submitting payment:", error);
+      toast.error("Failed to submit payment. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -104,6 +188,7 @@ const UserBookingActivity = () => {
     } catch (error) {
       console.error("Error starting call:", error);
       setShowCallModal(false);
+      toast.error("Failed to start the call");
     }
   };
 
@@ -175,6 +260,88 @@ const UserBookingActivity = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <ToastContainer position="top-right" autoClose={5000} />
+
+      {/* Payment Modal */}
+      {showModal && selectedBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md px-4 sm:px-6">
+          <div className="bg-white/80 backdrop-blur-lg rounded-3xl shadow-xl w-full max-w-md p-6 sm:p-6 border border-gray-200 relative">
+            {/* Header */}
+            <h2 className="text-2xl font-bold text-center text-gray-800 mb-4 tracking-tight">
+              Complete Your Payment
+            </h2>
+
+            {/* Booking Info */}
+            <div className="space-y-4 text-sm sm:text-base text-gray-700">
+              <div className="grid gap-1">
+                <p><span className="font-semibold">👤 Customer:</span> {user?.displayName || 'N/A'}</p>
+                <p><span className="font-semibold">🧑‍💼 Expert:</span> {experts[selectedBooking.expertId]?.fullName || "N/A"}</p>
+                <p><span className="font-semibold">💰 Amount:</span> Rs. {experts[selectedBooking.expertId]?.charges || "N/A"}</p>
+                <p><span className="font-semibold">📅 Date:</span> {new Date().toLocaleString()}</p>
+              </div>
+
+              {/* Upload Screenshot */}
+              <div className="pt-4">
+                <label className="block font-semibold mb-2 text-gray-800">
+                  Payment Proof (Screenshot)
+                </label>
+                <button
+                  type="button"
+                  onClick={openUploadWidget}
+                  className="w-full py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-medium hover:opacity-90 transition-all"
+                >
+                  {imageUrl ? 'Proof Uploaded ✔' : 'Upload Payment Proof'}
+                </button>
+              </div>
+
+              {/* Instructions Box */}
+              <div className="bg-white border border-orange-200 rounded-xl p-4 mt-5 text-sm shadow-sm">
+                <p className="text-orange-700 font-semibold mb-2">📌 EasyPaisa Payment Instructions:</p>
+                <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                  <li>Send to <strong>0315-1231234</strong></li>
+                  <li>Amount: Rs. <strong>{experts[selectedBooking.expertId]?.charges || "N/A"}</strong></li>
+                  <li>Include complete transaction details in screenshot</li>
+                </ul>
+                <p className="mt-3 text-gray-600">
+                  After payment, upload a clear screenshot showing transaction details.
+                </p>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setImageUrl('');
+                }}
+                className="w-full py-2 rounded-xl bg-gray-100 text-gray-800 font-medium hover:bg-gray-200 transition"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitPayment}
+                className="w-full py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition flex items-center justify-center"
+                disabled={isSubmitting || !imageUrl}
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  'Submit Payment'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Call Modal */}
       {showCallModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6">
@@ -394,7 +561,7 @@ const UserBookingActivity = () => {
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">Price</p>
                               <p className="text-sm font-medium text-gray-900 mt-1 truncate">
-                                {expert.charges ? `${expert.charges}` : 'Not specified'}
+                                {expert.charges ? `Rs. ${expert.charges}` : 'Not specified'}
                               </p>
                             </div>
                           </div>
@@ -441,15 +608,32 @@ const UserBookingActivity = () => {
                                   </svg>
                                   {isActiveCall ? 'Call Ongoing' : (isMobile ? 'Join Call' : 'Join Video Consultation')}
                                 </button>
-                                <button
-                                  onClick={() => deleteBooking(booking.id)}
-                                  className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-gray-300 text-xs md:text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 hover:scale-[1.02] active:scale-95"
-                                >
-                                  <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                  </svg>
-                                  Delete
-                                </button>
+                                
+                                {/* Payment Button - Toggles based on paymentStatus */}
+                                {booking.paymentStatus === 'pending' ? (
+                                  <button
+                                    disabled
+                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-gray-500 cursor-not-allowed"
+                                  >
+                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Pending Payment Verification
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBooking(booking);
+                                      setShowModal(true);
+                                    }}
+                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                                  >
+                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Pay Now
+                                  </button>
+                                )}
                               </>
                             ) : (
                               <>
@@ -504,7 +688,6 @@ const UserBookingActivity = () => {
 };
 
 export default UserBookingActivity;
-
 
 
 

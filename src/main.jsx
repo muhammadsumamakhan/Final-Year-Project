@@ -37,6 +37,8 @@ import LaptopRepair from './pages/OurServices/LaptopRepair';
 import ComputerRepair from './pages/OurServices/ComputerRepair';
 import AppleRepair from './pages/OurServices/AppleRepair';
 import DataRecovery from './pages/OurServices/DataRecovery';
+import ManageUsersPayment from './pages/AdminPortal/ManageUsersPayment';
+
 
 const router = createBrowserRouter([
   {
@@ -63,6 +65,7 @@ const router = createBrowserRouter([
       { path: 'admin-manage-users', element: <ManageUsers /> },
       { path: 'admin-manage-experts', element: <ManageExperts /> },
       { path: 'admin-manage-experts-request', element: <ManageExpertsRequest /> },
+      { path: 'admin-manage-payments', element: <ManageUsersPayment /> },
       { path: 'user-profile', element: <UserProfile /> },
       { path: 'expert-profile', element: <ExpertProfile /> },
       { path: 'expert-login-activity', element: <ExpertLoginActivity /> },
