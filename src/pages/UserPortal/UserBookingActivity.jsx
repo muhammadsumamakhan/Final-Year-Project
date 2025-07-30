@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, addDoc } from "firebase/firestore";
+import React, { useEffect, useState } from 'react'; 
+import { collection, query, where, onSnapshot, doc, updateDoc, getDocs, deleteDoc, addDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { db } from '../../config/firebase/config';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,7 @@ const UserBookingActivity = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userPayments, setUserPayments] = useState({});
   const navigate = useNavigate();
 
   // Check for mobile view
@@ -53,6 +54,22 @@ const UserBookingActivity = () => {
       setBookings(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch user payments
+  useEffect(() => {
+    if (!user) return;
+    
+    const q = query(collection(db, "UserPayments"), where("userId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const payments = {};
+      snapshot.forEach(doc => {
+        payments[doc.data().bookingId] = doc.data();
+      });
+      setUserPayments(payments);
+    });
+    
     return () => unsubscribe();
   }, [user]);
 
@@ -135,47 +152,35 @@ const UserBookingActivity = () => {
     myWidget.open();
   };
 
-  // Handle payment submission
-  const handleSubmitPayment = async () => {
-    if (!selectedBooking) return;
+  const handlePaymentSubmit = async () => {
+    if (!selectedBooking || !imageUrl || !user) return;
     
-    if (!imageUrl) {
-      toast.error("Please upload a payment screenshot first");
-      return;
-    }
-
     setIsSubmitting(true);
-
+    
     try {
-      // Create a new payment document in Firestore
+      // Create payment record in UserPayments collection
       const paymentData = {
         userId: user.uid,
-        userName: user.displayName || 'Anonymous',
+        userName: user.displayName || 'Anonymous User',
         expertId: selectedBooking.expertId,
-        expertName: experts[selectedBooking.expertId]?.fullName || 'Unknown Expert',
-        bookingId: selectedBooking.id,
+        expertName: experts[selectedBooking.expertId]?.fullName || 'Anonymous Expert',
+        verificationCode: selectedBooking.verificationCode,
         amount: experts[selectedBooking.expertId]?.charges || 0,
         screenshotUrl: imageUrl,
-        status: 'pending', // pending, verified, rejected
-        paymentMethod: 'easypaisa',
-        timestamp: new Date().toISOString(),
+        paymentStatus: 'pending',
+        timestamp: serverTimestamp(),
+        bookingId: selectedBooking.id,
+        paymentMethod: 'EasyPaisa'
       };
 
-      // Add to payments collection
-      const paymentsRef = collection(db, "UserPayments");
-      await addDoc(paymentsRef, paymentData);
-
-      // Update booking payment status
-      await updateDoc(doc(db, "bookings", selectedBooking.id), {
-        paymentStatus: 'pending'
-      });
-
-      toast.success("Payment submitted successfully! The expert will verify your payment.");
+      await addDoc(collection(db, "UserPayments"), paymentData);
+      
+      toast.success("Payment submitted successfully! Waiting for verification.");
       setShowModal(false);
       setImageUrl('');
     } catch (error) {
       console.error("Error submitting payment:", error);
-      toast.error("Failed to submit payment. Please try again.");
+      toast.error("Failed to submit payment");
     } finally {
       setIsSubmitting(false);
     }
@@ -321,7 +326,7 @@ const UserBookingActivity = () => {
                 Cancel
               </button>
               <button
-                onClick={handleSubmitPayment}
+                onClick={handlePaymentSubmit}
                 className="w-full py-2 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition flex items-center justify-center"
                 disabled={isSubmitting || !imageUrl}
               >
@@ -451,6 +456,7 @@ const UserBookingActivity = () => {
               {filteredBookings.map((booking) => {
                 const expert = experts[booking.expertId] || {};
                 const isActiveCall = showCallModal && currentCallBooking?.id === booking.id;
+                const payment = userPayments[booking.id];
                 const statusColors = {
                   pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-200' },
                   accepted: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-200' },
@@ -609,16 +615,38 @@ const UserBookingActivity = () => {
                                   {isActiveCall ? 'Call Ongoing' : (isMobile ? 'Join Call' : 'Join Video Consultation')}
                                 </button>
                                 
-                                {/* Payment Button - Toggles based on paymentStatus */}
-                                {booking.paymentStatus === 'pending' ? (
+                                {payment?.paymentStatus === 'pending' ? (
                                   <button
                                     disabled
-                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-gray-500 cursor-not-allowed"
+                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-yellow-500 cursor-not-allowed"
                                   >
-                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Pending Payment Verification
+                                    Payment Pending
+                                  </button>
+                                ) : payment?.paymentStatus === 'rejected' ? (
+                                  <button
+                                    onClick={() => {
+                                      setSelectedBooking(booking);
+                                      setShowModal(true);
+                                    }}
+                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-red-500 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                                  >
+                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Payment Rejected - Try Again
+                                  </button>
+                                ) : payment?.paymentStatus === 'accepted' ? (
+                                  <button
+                                    disabled
+                                    className="inline-flex items-center px-3 py-1.5 md:px-4 md:py-2 border border-transparent text-xs md:text-sm font-medium rounded-md shadow-sm text-white bg-green-500 cursor-not-allowed"
+                                  >
+                                    <svg className="-ml-0.5 mr-1.5 h-3 w-3 md:h-4 md:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Payment Verified
                                   </button>
                                 ) : (
                                   <button
