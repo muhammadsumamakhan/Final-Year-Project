@@ -164,6 +164,7 @@ const UserBookingActivity = () => {
         userName: user.displayName || 'Anonymous User',
         expertId: selectedBooking.expertId,
         expertName: experts[selectedBooking.expertId]?.fullName || 'Anonymous Expert',
+        expertContact: experts[selectedBooking.expertId]?.phone || 'N/A',
         verificationCode: selectedBooking.verificationCode,
         amount: experts[selectedBooking.expertId]?.charges || 0,
         screenshotUrl: imageUrl,
